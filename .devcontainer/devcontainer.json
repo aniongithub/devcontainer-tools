@@ -1,0 +1,10 @@
+{
+	"name": "docs-dev",
+	"context": "..",
+	"workspaceFolder": "/workspace/",
+	"dockerComposeFile": "docker-compose.yml",
+	"service": "hugo-dev",
+	"shutdownAction": "stopCompose",
+	"settings": { "terminal.integrated.shell.linux": "/bin/bash" },
+	"extensions": [ "rusnasonov.vscode-hugo", "MS-vsliveshare.vsliveshare", "bierner.markdown-preview-github-styles", "bierner.github-markdown-preview" ]
+}
