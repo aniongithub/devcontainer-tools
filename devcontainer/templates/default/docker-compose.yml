@@ -1,5 +1,5 @@
 version: "3"
-devcontainer:
+services:
   ${NAME}-${ID}-base:
     image: ${NAME}-${ID}-base
     build:
@@ -10,14 +10,14 @@ devcontainer:
     image: ${NAME}-${ID}-devcontainer
     build:
       context: ..
-      dockerfile: ${DEV_DOCKERFILE}
+      dockerfile: .devcontainer/${DEV_DOCKERFILE}
       args:
         NAME: ${NAME}
         ID: ${ID}
-        USERNAME: ${USERNAME}
-        USER_UID: ${USER_UID:-1000}
-        USER_GID: ${USER_GID:-1000}
-    user: ${USERNAME}
+        USERNAME: ${_USERNAME}
+        USER_UID: ${_USER_UID:-1000}
+        USER_GID: ${_USER_GID:-1000}
+    user: ${_USERNAME}
     volumes:
       - ..:/workspace
     command: /bin/sh -c "while sleep 1000; do :; done"  

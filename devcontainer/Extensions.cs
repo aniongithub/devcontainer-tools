@@ -18,6 +18,8 @@ namespace devcontainer
         {
             return TemplateVarMatcher.Replace(templateContent, match => 
             {
+                if (match.Groups[NameGroup].Value.StartsWith("_"))
+                    return $"${{{match.Groups[NameGroup].Value.Remove(0, 1)}}}";
                 var found = values.TryGetValue(match.Groups[NameGroup].Value, out var value);
                 if (!found)
                     value = match.Groups[DefaultGroup].Success? match.Groups[DefaultGroup].Value : string.Empty;
