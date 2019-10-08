@@ -1,0 +1,3 @@
+FROM scratch
+
+# TODO: Install any dependencies or tools here ...

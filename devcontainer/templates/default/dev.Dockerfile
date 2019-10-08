@@ -1,7 +1,5 @@
-FROM mcr.microsoft.com/dotnet/core/sdk
-
-RUN apt-get update && \
-    apt-get install -y hugo git
+# Choose the base image
+FROM ${NAME}-${ID}-base
 
 ARG USERNAME=
 ARG USER_UID=
@@ -19,5 +17,3 @@ RUN groupadd --gid $USER_GID $USERNAME \
 
 # Set the default user
 USER $USERNAME
-
-WORKDIR /anionline/

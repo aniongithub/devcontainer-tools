@@ -1,0 +1,23 @@
+version: "3"
+devcontainer:
+  ${NAME}-${ID}-base:
+    image: ${NAME}-${ID}-base
+    build:
+      context: ..
+      dockerfile: ${DOCKERFILE}
+  ${NAME}-${ID}-devcontainer:
+    depends_on: [ "${NAME}-${ID}-base" ]
+    image: ${NAME}-${ID}-devcontainer
+    build:
+      context: ..
+      dockerfile: ${DEV_DOCKERFILE}
+      args:
+        NAME: ${NAME}
+        ID: ${ID}
+        USERNAME: ${USERNAME}
+        USER_UID: ${USER_UID:-1000}
+        USER_GID: ${USER_GID:-1000}
+    user: ${USERNAME}
+    volumes:
+      - ..:/workspace
+    command: /bin/sh -c "while sleep 1000; do :; done"  
