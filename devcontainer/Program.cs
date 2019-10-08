@@ -41,7 +41,7 @@ namespace devcontainer
                 .ToReadOnlyDictionary()
                 .MergeWithUpdates(customVars);
 
-            var sourceTemplatePath = Path.Combine(Defaults.TemplatesPath, opts.TemplateName);
+            var sourceTemplatePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, Defaults.TemplatesPath, opts.TemplateName);
             if (!Directory.Exists(sourceTemplatePath))
             {
                 Console.Error.WriteLine($"Could not find template {opts.TemplateName}!");
