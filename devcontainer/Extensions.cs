@@ -14,15 +14,14 @@ namespace devcontainer
         public static readonly Regex TemplateVarMatcher = new Regex(@"(?!(""))\$\{(?<name>[^}:]+)(\:-?(?<default>.*))?\}", 
             RegexOptions.ExplicitCapture | RegexOptions.Compiled | RegexOptions.Multiline);
 
-        public static string PerformTemplateSubstitutions(this string templateContent, IReadOnlyDictionary<string, string> values)
+        public static string PerformTemplateSubstitutions(this string templateContent, IReadOnlyDictionary<string, string> values, bool passthroughUnknowns = false)
         {
             return TemplateVarMatcher.Replace(templateContent, match => 
             {
-                if (match.Groups[NameGroup].Value.StartsWith("_"))
-                    return $"${{{match.Groups[NameGroup].Value.Remove(0, 1)}}}";
                 var found = values.TryGetValue(match.Groups[NameGroup].Value, out var value);
                 if (!found)
-                    value = match.Groups[DefaultGroup].Success? match.Groups[DefaultGroup].Value : string.Empty;
+                    value = passthroughUnknowns ? match.Value : 
+                        match.Groups[DefaultGroup].Success? match.Groups[DefaultGroup].Value : string.Empty;
                 return value;
             });
         }
@@ -43,10 +42,10 @@ namespace devcontainer
             return result;
         }
 
-        public static void Process(this IReadOnlyDictionary<string, string> env, string sourceFilename, string destFilename, bool overwrite = false)
+        public static void Process(this IReadOnlyDictionary<string, string> env, string sourceFilename, string destFilename, bool overwrite = false, bool passthroughUnknowns = false)
         {
             var text = File.ReadAllText(sourceFilename)
-                .PerformTemplateSubstitutions(env);
+                .PerformTemplateSubstitutions(env, passthroughUnknowns);
             Directory.CreateDirectory(Path.GetDirectoryName(destFilename));
 
             // RESPECT the flag
@@ -54,7 +53,8 @@ namespace devcontainer
                 File.WriteAllText(destFilename, text);
         }
 
-        public static void CopyTo(this string sourceFolder, string destinationFolder, string mask = "*.*", bool createFolders = false, bool recurseFolders = false, bool overwrite = false)
+        public static void CopyTo(this string sourceFolder, string destinationFolder, string mask = "*.*", bool createFolders = false, bool recurseFolders = false, bool overwrite = false, 
+            Action<string, string> onCopyFile = null, bool overWrite = false)
         {
             try
             {
@@ -67,24 +67,15 @@ namespace devcontainer
                     FileInfo srcFile = new FileInfo(sourceFile);
                     string srcFileName = srcFile.Name;
 
-                    // Create a destination that matches the source structure
-                    FileInfo destFile = new FileInfo(destinationFolder + srcFile.FullName.Replace(sourceFolder, ""));
+                    var destFile = new FileInfo(destinationFolder + srcFile.FullName.Replace(sourceFolder, ""));
 
                     if (!Directory.Exists(destFile.DirectoryName ) && createFolders)
-                    {
                         Directory.CreateDirectory(destFile.DirectoryName);
-                    }
 
-                    if (srcFile.LastWriteTime > destFile.LastWriteTime || !destFile.Exists)
-                    {
-                        File.Copy(srcFile.FullName, destFile.FullName, true);
-                    }
-                    else if (overwrite)
-                    {
-                        File.Copy(srcFile.FullName, destFile.FullName, true);
-                    }
+                    if (onCopyFile == null)
+                        File.Copy(srcFile.FullName, destFile.FullName, overwrite);
                     else
-                        Console.WriteLine($"{destFile.FullName} exists and is newer than the source. Use -d to discard changes");
+                        onCopyFile(srcFile.FullName, destFile.FullName);
                 }
             }
             catch (Exception ex)

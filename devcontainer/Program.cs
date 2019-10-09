@@ -1,8 +1,8 @@
 ﻿using System;
-using System.Linq;
 using System.Collections.Generic;
 using System.IO;
 using CommandLine;
+using CliWrap;
 
 namespace devcontainer
 {
@@ -28,6 +28,7 @@ namespace devcontainer
                 { "SHUTDOWN_ACTION", opts.ShutdownAction },
                 { "SHELL", opts.Shell }
             };
+
             // Set Name to TemplateName if not set
             if (opts.Name == Defaults.Name)
             {
@@ -35,12 +36,7 @@ namespace devcontainer
                 customVars["NAME"] = opts.TemplateName;
             }
             
-            // Merge custom values, allow the host environment to overwrite values
-            var mergedEnv = Environment
-                .GetEnvironmentVariables()
-                .ToReadOnlyDictionary()
-                .MergeWithUpdates(customVars);
-
+            // Find the source template
             var sourceTemplatePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, Defaults.TemplatesPath, opts.TemplateName);
             if (!Directory.Exists(sourceTemplatePath))
             {
@@ -60,23 +56,13 @@ namespace devcontainer
             if (!Directory.Exists(devContainerFolder))
                 Directory.CreateDirectory(devContainerFolder);
 
-            // Create our template folder
+            // Create our destination template folder
             var destTemplatePath = Path.Combine(devContainerFolder, opts.Name);
 
-            // Process docker-compose.yml
-            mergedEnv.Process(
-                Path.Combine(sourceTemplatePath, Defaults.DockerComposeFile), 
-                Path.Combine(destTemplatePath, Defaults.DockerComposeFile));
-
-            // Process devcontainer.json
-            mergedEnv.Process(
-                Path.Combine(sourceTemplatePath, Defaults.DevcontainerJsonFile),
-                Path.Combine(destTemplatePath, Defaults.DevcontainerJsonFile));
-
-            // Process dev.Dockerfile
-            mergedEnv.Process(
-                Path.Combine(sourceTemplatePath, Defaults.DevDockerfile),
-                Path.Combine(destTemplatePath, Defaults.DevDockerfile));
+            // Copy to our destination path
+            // Process variables, but pass through unknowns
+            sourceTemplatePath.CopyTo(destTemplatePath, overwrite: opts.Overwrite,
+                onCopyFile: (src, dst) => customVars.Process(src, dst, opts.Overwrite, true));
         }
 
         static void Activate(ActivateOptions opts)
@@ -88,7 +74,23 @@ namespace devcontainer
                 Environment.Exit(1);
             }
             var destPath = Path.Combine(sourceTemplatePath, "..");
-            sourceTemplatePath.CopyTo(destPath, overwrite: opts.DiscardChanges);
+
+
+            var customVars = new Dictionary<string, string> {
+                { "USER_UID", Cli.Wrap("id").SetArguments("-u").Execute().StandardOutput.Trim('\r','\n', ' ') },
+                { "USER_GID", Cli.Wrap("id").SetArguments("-g").Execute().StandardOutput.Trim('\r','\n', ' ') }
+            };
+
+            // This time, merge custom vars with the environment
+            // Environment vars overwrite any custom vars
+            var mergedEnv = Environment
+                .GetEnvironmentVariables()
+                .ToReadOnlyDictionary()
+                .MergeWithUpdates(customVars);
+
+            // Substitute vars with environment values and activate as current devcontainer
+            sourceTemplatePath.CopyTo(destPath,
+                onCopyFile: (src, dst) => mergedEnv.Process(src, dst, opts.DiscardChanges));
         }
 
         static void List(LSOptions opts)

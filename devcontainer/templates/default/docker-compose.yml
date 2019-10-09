@@ -14,10 +14,10 @@ services:
       args:
         NAME: ${NAME}
         ID: ${ID}
-        USERNAME: ${_USERNAME}
-        USER_UID: ${_USER_UID:-1000}
-        USER_GID: ${_USER_GID:-1000}
-    user: ${_USERNAME}
+        USERNAME: ${USERNAME}
+        USER_UID: ${USER_UID:-1000}
+        USER_GID: ${USER_GID:-1000}
+    user: ${USERNAME}
     volumes:
       - ..:/workspace
     command: /bin/sh -c "while sleep 1000; do :; done"  

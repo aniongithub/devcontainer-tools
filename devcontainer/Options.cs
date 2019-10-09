@@ -54,6 +54,10 @@ namespace devcontainer
         [Option(Hidden = true, Required = false, Default = Defaults.DevDockerfile,
             HelpText = "The devcontainer Dockerfile")]
         public string DevDockerfile { get; set; }
+
+        [Option('o', "overwrite", Default = false, HelpText = "Overwrite any existing files")]
+        public bool Overwrite { get; set; }
+        
         public InitOptions()
         {
             Id = Guid.NewGuid().ToString().Replace("-", string.Empty);
