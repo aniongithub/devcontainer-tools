@@ -21,6 +21,7 @@ namespace devcontainer
         public const string Template = "default";
 
         public const string DefaultTemplatePath = TemplatesPath + Template;
+        public const string WorkspaceRoot = ".";
     }
 
     [Verb("init", HelpText = "Initialize a devcontainer from a template or custom set of options")]
@@ -57,6 +58,9 @@ namespace devcontainer
 
         [Option('o', "overwrite", Default = false, HelpText = "Overwrite any existing files")]
         public bool Overwrite { get; set; }
+
+        [Option('w', "workspace-root", Default = Defaults.WorkspaceRoot )]
+        public string WorkspaceRoot { get; set; }
         
         public InitOptions()
         {

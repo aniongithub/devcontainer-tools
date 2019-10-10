@@ -19,5 +19,5 @@ services:
         USER_GID: ${USER_GID:-1000}
     user: ${USERNAME}
     volumes:
-      - ..:/workspace
+      - ../{WORKSPACE_ROOT}:/workspace
     command: /bin/sh -c "while sleep 1000; do :; done"  

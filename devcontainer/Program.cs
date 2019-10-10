@@ -26,7 +26,8 @@ namespace devcontainer
                 { "DOCKERFILE", opts.Dockerfile },
                 { "CONTEXT", opts.Context },
                 { "SHUTDOWN_ACTION", opts.ShutdownAction },
-                { "SHELL", opts.Shell }
+                { "SHELL", opts.Shell },
+                { "WORKSPACE_ROOT", opts.WorkspaceRoot }
             };
 
             // Set Name to TemplateName if not set
@@ -62,7 +63,7 @@ namespace devcontainer
             // Copy to our destination path
             // Process variables, but pass through unknowns
             sourceTemplatePath.CopyTo(destTemplatePath, overwrite: opts.Overwrite,
-                onCopyFile: (src, dst) => customVars.Process(src, dst, opts.Overwrite, true));
+                onCopyFile: (src, dst) => customVars.Process(src, dst, opts.Overwrite, passthroughUnknowns: true));
         }
 
         static void Activate(ActivateOptions opts)
@@ -90,7 +91,7 @@ namespace devcontainer
 
             // Substitute vars with environment values and activate as current devcontainer
             sourceTemplatePath.CopyTo(destPath,
-                onCopyFile: (src, dst) => mergedEnv.Process(src, dst, opts.DiscardChanges));
+                onCopyFile: (src, dst) => mergedEnv.Process(src, dst, opts.DiscardChanges, passthroughUnknowns: true));
         }
 
         static void List(LSOptions opts)
