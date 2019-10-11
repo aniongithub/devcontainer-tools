@@ -11,13 +11,7 @@ services:
     build:
       context: ..
       dockerfile: .devcontainer/${DEV_DOCKERFILE}
-      args:
-        NAME: ${NAME}
-        ID: ${ID}
-        USERNAME: ${USERNAME}
-        USER_UID: ${USER_UID:-1000}
-        USER_GID: ${USER_GID:-1000}
     user: ${USERNAME}
     volumes:
-      - ../{WORKSPACE_ROOT}:/workspace
+      - ../${WORKSPACE_ROOT}:/workspace
     command: /bin/sh -c "while sleep 1000; do :; done"  

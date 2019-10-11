@@ -4,12 +4,17 @@ using System.IO;
 using CommandLine;
 using CliWrap;
 
+using Anotar.LibLog;
+
 namespace devcontainer
 {
     class Program
     {
+        
         static void Main(string[] args)
         {
+            Logging.LogProvider.SetCurrentLogProvider(new Logging.ColoredConsoleLogProvider());
+            
             Parser.Default.ParseArguments<InitOptions, ActivateOptions, LSOptions>(args)
                 .WithParsed<InitOptions>(opts => Init(opts))
                 .WithParsed<ActivateOptions>(opts => Activate(opts))

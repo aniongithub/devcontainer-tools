@@ -18,7 +18,8 @@ namespace devcontainer
         {
             return TemplateVarMatcher.Replace(templateContent, match => 
             {
-                var found = values.TryGetValue(match.Groups[NameGroup].Value, out var value);
+                var name = match.Groups[NameGroup].Value;
+                var found = values.TryGetValue(name, out var value);
                 if (!found)
                     value = passthroughUnknowns ? match.Value : 
                         match.Groups[DefaultGroup].Success? match.Groups[DefaultGroup].Value : string.Empty;
