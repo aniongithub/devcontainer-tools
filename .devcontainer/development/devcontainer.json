@@ -1,0 +1,12 @@
+{
+	"name": "development",
+	"context": "..",
+	"workspaceFolder": "/workspace/",
+	"dockerComposeFile": "docker-compose.yml",
+	"service": "development-d06690c1d0c24483bc519a18adc5ee82-devcontainer",
+	"shutdownAction": "stopCompose",
+	"settings": { "terminal.integrated.shell.linux": "/bin/bash" },
+	"extensions": [ "ms-vscode.csharp", "ms-azuretools.vscode-docker", 
+					"icsharpcode.ilspy-vscode", "fernandoescolar.vscode-solution-explorer", 
+					"ilich8086.untabify", "redhat.vscode-yaml" ]
+}
