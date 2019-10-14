@@ -8,5 +8,5 @@
 	"settings": { "terminal.integrated.shell.linux": "/bin/bash" },
 	"extensions": [ "ms-vscode.csharp", "ms-azuretools.vscode-docker", 
 					"icsharpcode.ilspy-vscode", "fernandoescolar.vscode-solution-explorer", 
-					"ilich8086.untabify", "redhat.vscode-yaml" ]
+					"ilich8086.untabify", "redhat.vscode-yaml", "fudge.auto-using" ]
 }
