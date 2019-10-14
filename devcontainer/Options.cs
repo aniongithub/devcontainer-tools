@@ -22,6 +22,10 @@ namespace devcontainer
 
         public const string DefaultTemplatePath = TemplatesPath + Template;
         public const string WorkspaceRoot = ".";
+        public const string ConfigDir = ".devcontainer";
+
+        public const string DevContainerEnvFilename = "devcontainer.env";
+        public const string DevContainerJsonFilename = "devcontainer.json";
     }
 
     [Verb("init", HelpText = "Initialize a devcontainer from a template or custom set of options")]
@@ -48,7 +52,7 @@ namespace devcontainer
         [Option(Hidden = true, Required = false)]
         public string Id { get; set; }
 
-        [Option(Required = false, Default = Defaults.Dockerfile,
+        [Option('d', "dockerfile", Required = false, Default = Defaults.Dockerfile,
             HelpText = "The Dockerfile to use as a base for the devcontainer")]
         public string Dockerfile { get; set; }
 
@@ -61,7 +65,7 @@ namespace devcontainer
 
         [Option('w', "workspace-root", Default = Defaults.WorkspaceRoot )]
         public string WorkspaceRoot { get; set; }
-        
+
         public InitOptions()
         {
             Id = Guid.NewGuid().ToString().Replace("-", string.Empty);

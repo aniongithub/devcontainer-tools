@@ -1,9 +1,9 @@
 {
-	"name": "${NAME}",
+	"name": "${DEVCONTAINER_NAME}",
 	"context": "..",
 	"workspaceFolder": "/workspace/",
 	"dockerComposeFile": "docker-compose.yml",
-	"service": "${NAME}-${ID}-devcontainer",
-	"shutdownAction": "${SHUTDOWN_ACTION}",
-    "settings": { "terminal.integrated.shell.linux": "${SHELL}" }
+	"service": "${DEVCONTAINER_NAME}-${DEVCONTAINER_ID}-devcontainer",
+	"shutdownAction": "${DEVCONTAINER_SHUTDOWN_ACTION}",
+    "settings": { "terminal.integrated.shell.linux": "${DEVCONTAINER_SHELL}" }
 }

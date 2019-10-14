@@ -1,15 +1,15 @@
 # Choose the base image
-FROM ${NAME}-${ID}-base
+FROM ${DEVCONTAINER_NAME}-${DEVCONTAINER_ID}-base
 
 # Create the user
-RUN groupadd --gid ${USER_GID} ${USERNAME} \
-    && useradd --uid ${USER_UID} --gid ${USER_GID} -m ${USERNAME} \
-    && mkdir -p /home/${USERNAME}/.vscode-server /home/${USERNAME}/.vscode-server-insiders \
-    && chown ${USER_UID}:${USER_GID} /home/${USERNAME}/.vscode-server* \
+RUN groupadd --gid ${HOST_USER_GID} ${HOST_USER_NAME} \
+    && useradd --uid ${HOST_USER_UID} --gid ${HOST_USER_GID} -m ${HOST_USER_NAME} \
+    && mkdir -p /home/${HOST_USER_NAME}/.vscode-server /home/${HOST_USER_NAME}/.vscode-server-insiders \
+    && chown ${HOST_USER_UID}:${HOST_USER_GID} /home/${HOST_USER_NAME}/.vscode-server* \
     # [Optional] Add sudo support
     && apt-get update && apt-get install -y sudo acl \
-    && echo ${USERNAME} ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/${USERNAME} \
-    && chmod 0440 /etc/sudoers.d/${USERNAME}
+    && echo ${HOST_USER_NAME} ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/${HOST_USER_NAME} \
+    && chmod 0440 /etc/sudoers.d/${HOST_USER_NAME}
 
 # Set the default user
-USER ${USERNAME}
+USER ${HOST_USER_NAME}

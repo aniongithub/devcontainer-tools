@@ -1,17 +1,19 @@
 version: "3"
 services:
-  ${NAME}-${ID}-base:
-    image: ${NAME}-${ID}-base
+  ${DEVCONTAINER_NAME}-${DEVCONTAINER_ID}-base:
+    image: ${DEVCONTAINER_NAME}-${DEVCONTAINER_ID}-base
     build:
       context: ..
-      dockerfile: ${DOCKERFILE}
-  ${NAME}-${ID}-devcontainer:
-    depends_on: [ "${NAME}-${ID}-base" ]
-    image: ${NAME}-${ID}-devcontainer
+      dockerfile: ${DEVCONTAINER_BASE_DOCKERFILE}
+  ${DEVCONTAINER_NAME}-${DEVCONTAINER_ID}-devcontainer:
+    depends_on: [ "${DEVCONTAINER_NAME}-${DEVCONTAINER_ID}-base" ]
+    image: ${DEVCONTAINER_NAME}-${DEVCONTAINER_ID}-devcontainer
+    env_file:
+      - devcontainer.env
     build:
       context: ..
-      dockerfile: .devcontainer/${DEV_DOCKERFILE}
-    user: ${USERNAME}
+      dockerfile: .devcontainer/${DEVCONTAINER_DEV_DOCKERFILE}
+    user: ${HOST_USER_NAME}
     volumes:
-      - ../${WORKSPACE_ROOT}:/workspace
-    command: /bin/sh -c "while sleep 1000; do :; done"  
+      - ../${DEVCONTAINER_WORKSPACE_ROOT}:/workspace
+    command: /bin/sh -c "while sleep 1000; do :; done"
