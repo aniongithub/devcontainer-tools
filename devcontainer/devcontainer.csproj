@@ -7,7 +7,6 @@
     <ToolCommandName>devcontainer</ToolCommandName>
     <PackageOutputPath>./nupkg</PackageOutputPath>
     
-    <Version>0.0.1</Version>
     <Title>devcontainer</Title>
     <Description>devcontainer is a CLI tool that uses Docker to create, package and distribute complete build/development (VS Code remote containers compatible) environments that are zero install and completely reproducible</Description>
     <Authors>Ani Balasubramaniam</Authors>
