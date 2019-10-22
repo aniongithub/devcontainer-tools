@@ -1,6 +1,8 @@
-version: 0.1.{build}
+version: 1.0.{build}
 image: Ubuntu
 configuration: Release
+environment:
+  ssl_cert_dir: /dev/null
 build:
   publish_nuget: true
   publish_nuget_symbols: true
