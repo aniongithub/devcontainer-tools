@@ -1,5 +1,5 @@
 # Choose the base image
-FROM development-d06690c1d0c24483bc519a18adc5ee82-base
+FROM ${DEVCONTAINER_NAME}-${DEVCONTAINER_ID}-base
 
 # Create the user
 RUN groupadd --gid ${HOST_USER_GID} ${HOST_USER_NAME} \
