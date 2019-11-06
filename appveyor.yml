@@ -1,6 +1,8 @@
-version: 1.0.{build}
+version: 0.1.{build}
 image: Ubuntu
 configuration: Release
+environment:
+  ssl_cert_dir: /dev/null
 build:
   publish_nuget: true
   publish_nuget_symbols: true
@@ -10,3 +12,5 @@ deploy:
   api_key:
     secure: 9PiArQv46K2qlHCfvnHLGaN0VZiICorgLS9DUTobHxYARAtpSzJW8FBMi6niylnL
   skip_symbols: true
+  on:
+    branch: master
