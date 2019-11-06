@@ -13,8 +13,6 @@ services:
     build:
       context: ..
       dockerfile: .devcontainer/dev.Dockerfile
-    # user: ${HOST_USER_NAME}
     volumes:
       - ../.:/workspace
-      - /etc/sudoers.d/${HOST_USER_UID}:/etc/sudoers.d/${HOST_USER_UID}
     command: /bin/sh -c "while sleep 1000; do :; done"
