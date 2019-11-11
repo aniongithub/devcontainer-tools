@@ -58,7 +58,8 @@ namespace devcontainer
             if (!File.Exists(Path.Combine(opts.Context, opts.Dockerfile)))
             {
                 LogTo.Warn($"No Dockerfile was found in \"{opts.Context}\", creating blank Dockerfile {opts.Dockerfile}. Please update this to install any prerequisites your build environment needs");
-                File.Copy(Path.Combine(Defaults.DefaultTemplatePath, Defaults.Dockerfile), Path.Combine(opts.Context, opts.Dockerfile));
+                opts.Context.EnsureDirectoriesExist();
+                File.WriteAllText(Path.Combine(opts.Context, opts.Dockerfile), Defaults.DefaultDockerfileContents);
             }
             else
                 LogTo.Info($"{opts.Dockerfile} found, will use to build base image");
@@ -109,7 +110,7 @@ namespace devcontainer
                 Environment.Exit(1);
             }
             else
-                LogTo.Info("Running within devcontainer. Using $HOST_USER_UID, $HOST_USER_GID and $HOST_USER_NAME");
+                LogTo.Info("Found, using $HOST_USER_UID, $HOST_USER_GID and $HOST_USER_NAME");
 
             var customVars = Extensions.RunningInContainer() ?
             new Dictionary<string, string> {

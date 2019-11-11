@@ -13,7 +13,6 @@ services:
     build:
       context: ..
       dockerfile: .devcontainer/${DEVCONTAINER_DEV_DOCKERFILE}
-    user: ${HOST_USER_NAME}
     volumes:
       - ../${DEVCONTAINER_WORKSPACE_ROOT}:/workspace
     command: /bin/sh -c "while sleep 1000; do :; done"

@@ -26,6 +26,9 @@ namespace devcontainer
 
         public const string DevContainerEnvFilename = "devcontainer.env";
         public const string DevContainerJsonFilename = "devcontainer.json";
+
+        public const string DefaultDockerfileContents = @"FROM scratch
+# TODO: Install any dependencies or tools here ...";
     }
 
     [Verb("init", HelpText = "Initialize a devcontainer from a template or custom set of options")]
