@@ -1,38 +1,12 @@
 ﻿using System;
 using CommandLine;
 
+using devcontainer.core;
+
 namespace devcontainer
 {
-    public static class Defaults
-    {
-        public const string Dockerfile = "Dockerfile";
-        public const string DevDockerfile = "dev.Dockerfile";
-        public const string DevContainerFolder = ".devcontainer";
-        public const string DockerComposeFile = "docker-compose.yml";
-        public const string DevcontainerJsonFile = "devcontainer.json";
-        public const string Name = null;
-        public const string ShutdownAction = "stopCompose";
-        public const string Shell = "/bin/bash";
-
-        public const string TemplateName = "default";
-        public const string Context = ".";
-
-        public const string TemplatesPath = "templates/";
-        public const string Template = "default";
-
-        public const string DefaultTemplatePath = TemplatesPath + Template;
-        public const string WorkspaceRoot = ".";
-        public const string ConfigDir = ".devcontainer";
-
-        public const string DevContainerEnvFilename = "devcontainer.env";
-        public const string DevContainerJsonFilename = "devcontainer.json";
-
-        public const string DefaultDockerfileContents = @"FROM scratch
-# TODO: Install any dependencies or tools here ...";
-    }
-
     [Verb("init", HelpText = "Initialize a devcontainer from a template or custom set of options")]
-    public sealed class InitOptions
+    public sealed class InitOptions: IInitOptions
     {
         [Value(0, Required = false, Default = Defaults.TemplateName, HelpText = "The id of the template to use")]
         public string TemplateName { get; set;}
@@ -76,7 +50,7 @@ namespace devcontainer
     }
 
     [Verb("activate", HelpText = "Activate the specified devcontainer files (devcontainer rebuild may be necessary)")]
-    public sealed class ActivateOptions
+    public sealed class ActivateOptions: IActivateOptions
     {
         [Value(0, HelpText = "Name of the saved devcontainer to activate")]
         public string Name { get; set; }
@@ -86,44 +60,67 @@ namespace devcontainer
     }
 
     [Verb("ls", HelpText = "List all available devcontainers")]
-    public sealed class LSOptions
+    public sealed class LSOptions: ILSOptions
     {
         [Option(Default = Defaults.Context,
             HelpText = "The context to search for saved devcontainers in")]
         public string Context { get; set; }
     }
 
-    [Verb("start", HelpText = "Start a devcontainer")]
-    public sealed class StartOptions
+    [Verb("run", HelpText = "Run a one-off command in a new instance of the active devcontainer")]
+    public sealed class RunOptions: IRunOptions
     {
+        [Option(Default = Defaults.Context, HelpText = "The context to search for saved devcontainers in")]
+        public string Context { get; set; }
 
+        [Value(0, HelpText = "Command to run within the container")]
+        public string Command { get; set; }
+
+        [Option('w', "workdir", Default = "", HelpText = "The working directory within the container")]
+        public string WorkDir { get; set; }
+    }    
+
+    [Verb("start", HelpText = "Start active devcontainer")]
+    public sealed class StartOptions: IStartOptions
+    {
+        [Option(Default = Defaults.Context,
+            HelpText = "The context to search for saved devcontainers in")]
+        public string Context { get; set; }
+
+        [Option("build", Default = true,
+            HelpText = "(Re)build Docker images if necessary")]
+        public bool Build { get; set; }        
     }
     
-    [Verb("stop", HelpText = "Stop a devcontainer")]
-    public sealed class StopOptions
+    [Verb("stop", HelpText = "Stop active devcontainer")]
+    public sealed class StopOptions: IStopOptions
     {
-
+        [Option(Default = Defaults.Context,
+            HelpText = "The context to search for saved devcontainers in")]
+        public string Context { get; set; }
+        [Option("timeout", Default = 10, HelpText = "Specify a shutdown timeout in seconds")]
+        public int TimeoutSec { get; set; }
     }
     
-    [Verb("connect", HelpText = "Connect to a running devcontainer")]
-    public sealed class ConnectOptions
+    [Verb("status", HelpText = "Show status of the active devcontainer")]
+    public sealed class StatusOptions: IStatusOptions
     {
-
-    }
-
-    [Verb("run", HelpText = "Run one more commands in a devcontainer")]
-    public sealed class RunOptions
-    {
+        [Option(Default = Defaults.Context,
+            HelpText = "The context to search for saved devcontainers in")]
+        public string Context { get; set; }
     }
     
-    [Verb("ps", HelpText = "List all running devcontainers")]
-    public sealed class PSOptions
+    [Verb("exec", HelpText = "Execute a command in an existing instance of the active devcontainer")]
+    public sealed class ExecOptions: IExecOptions
     {
-    }
-    
+        [Option(Default = Defaults.Context,
+            HelpText = "The context to search for saved devcontainers in")]
+        public string Context { get; set; }
 
-    [Verb("rm", HelpText = "Remove a devcontainer configuration")]
-    public sealed class RMOptions
-    {
+        [Value(0, HelpText = "Command to run within the container")]
+        public string Command { get; set; }
+
+        [Option('w', "workdir", Default = "", HelpText = "The working directory within the container")]
+        public string WorkDir { get; set; }
     }
 }

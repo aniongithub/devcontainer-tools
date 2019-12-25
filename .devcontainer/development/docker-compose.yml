@@ -1,4 +1,4 @@
-version: "3"
+version: "3.7"
 services:
   development-d06690c1d0c24483bc519a18adc5ee82-base:
     image: development-d06690c1d0c24483bc519a18adc5ee82-base

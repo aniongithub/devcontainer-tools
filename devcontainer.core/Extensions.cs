@@ -1,7 +1,4 @@
-using System.Xml.Linq;
-using Anotar.LibLog;
 using System.Text;
-using System.Diagnostics;
 using System;
 using System.IO;
 using System.Linq;
@@ -78,26 +75,26 @@ namespace devcontainer
                     if (!Directory.Exists(destFile.DirectoryName ) && createFolders)
                     {
                         Directory.CreateDirectory(destFile.DirectoryName);
-                        LogTo.Info($"Creating folder {destFile.DirectoryName}...");
+                        Console.WriteLine($"Creating folder {destFile.DirectoryName}...");
                     }
 
                     if (onCopyFile == null)
                     {
-                        LogTo.Info("Using default copy");
+                        Console.WriteLine("Using default copy");
                         if (File.Exists(destFile.FullName) && !overWrite)
                         {
-                            LogTo.Warn($"Destination file {destFile.FullName} exists and over-writing is forbidden. Skipping.");
+                            Console.Error.WriteLine($"Destination file {destFile.FullName} exists and over-writing is forbidden. Skipping.");
                             continue;
                         }
                         else
                         {
-                            LogTo.Info($"Copying {srcFile.FullName} -> {destFile.FullName}");
+                            Console.WriteLine($"Copying {srcFile.FullName} -> {destFile.FullName}");
                             File.Copy(srcFile.FullName, destFile.FullName, overwrite);
                         }
                     }
                     else
                     {
-                        LogTo.Info($"Using custom copy for {srcFile.FullName} -> {destFile.FullName} ...");
+                        Console.WriteLine($"Using custom copy for {srcFile.FullName} -> {destFile.FullName} ...");
                         onCopyFile(srcFile.FullName, destFile.FullName);
                     }
                 }
@@ -127,6 +124,27 @@ namespace devcontainer
             foreach (var kvp in env)
                 text.AppendLine($"{kvp.Key}={kvp.Value}");
             File.AppendAllText(filename, text.ToString());
+        }
+
+        public static IReadOnlyDictionary<string, string> LoadEnvFile(this string filename)
+        {
+            var result = new Dictionary<string, string>();
+            try
+            {
+                using (var reader = new StreamReader(filename))
+                while (!reader.EndOfStream)
+                {
+                    var line = reader.ReadLine();
+                    var parts = line.Split('=');
+                    result.Add(parts[0], parts[1]);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"Exception: {ex.Message}\n{ex.StackTrace}");
+            }
+
+            return result;
         }
 
         public static bool RunningInContainer()

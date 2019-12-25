@@ -9,5 +9,7 @@ namespace devcontainer
         public string dockerComposeFile { get; set; }
         public string service { get; set; }
         public string shutdownAction { get; set; }
+
+        public bool active { get; internal set; }
     }
 }

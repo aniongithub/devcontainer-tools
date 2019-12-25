@@ -1,12 +1,15 @@
 # devcontainer-tools
 
-`devcontainer` is a way to combine application sources and a Docker container which packages build tools/dependencies to produce a binary in a snap - all without local installation shenanigans or ever mucking around with permissions/volumes. Also, because `devcontainer` uses the same file formats and structures used by the [Visual Studio Remote Containers](https://code.visualstudio.com/docs/remote/containers) extensions, this tool also acts as a handy way to manage and use multiple devcontainer configurations. If Visual Studio Code is installed, it can instantly act as an IDE with full intellisense and debugging support right out of the box.
+[![Build status](https://ci.appveyor.com/api/projects/status/uwnfvv2g62uvxb7j/branch/master?svg=true)](https://ci.appveyor.com/project/aniongithub/devcontainer-tools/branch/master)
+
+`devcontainer` is a way to combine application sources and a Docker container which packages build tools/dependencies to produce a binary (or a full-featured development environment) in a snap - all without local installation shenanigans or ever mucking around with permissions/volumes. Also, because `devcontainer` uses the same file formats and structures used by the [Visual Studio Remote Containers](https://code.visualstudio.com/docs/remote/containers) extensions, this tool also acts as a handy way to manage and use multiple devcontainer configurations. If Visual Studio Code is installed, it can instantly act as an IDE with full intellisense and debugging support right out of the box.
 
 All you need is:
 
 ### Installed on the Host
 * [Docker](https://docs.docker.com/v17.09/engine/installation/)
 * [docker-compose](https://docs.docker.com/compose/install/)
+* [docker-machine](https://docs.docker.com/machine/) *(optional, only required for cloud devcontainers)*
 * [.NET Core 3.0+](https://dotnet.microsoft.com/download)
 * [Visual Studio code](https://code.visualstudio.com/) with Remote Containers extension *(optional)*
 

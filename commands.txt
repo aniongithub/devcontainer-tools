@@ -1,0 +1,6 @@
+Start: docker-compose up --no-start <servicename> && docker-compose start <servicename>
+Stop: docker-compose stop <servicename>
+Exec: docker-compose exec -w <workdir> <servicename> <command> 
+Status: docker ps -q --no-trunc | grep $(docker-compose ps -q <servicename>)
+Reverse SSHFS for mounting a local filesystem via FUSE: https://gist.github.com/allenyllee/ddf9be045810572cd809ae3587a23658
+Passwordless SSH and docker-machine setup: https://gist.github.com/aniongithub/182a0e2eba06014bfb6a6addc90fbe12

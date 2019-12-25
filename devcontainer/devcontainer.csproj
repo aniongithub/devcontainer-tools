@@ -17,22 +17,17 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Anotar.LibLog.Fody" Version="5.1.0" />
     <PackageReference Include="CliWrap" Version="2.4.0" />
     <PackageReference Include="CommandLineParser" Version="2.6.0" />
-    <PackageReference Include="Fody" Version="6.0.0">
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
-    <PackageReference Include="LibLog" Version="5.0.6">
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
     <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
   </ItemGroup>
 
 <ItemGroup>
   <None Update="templates/**/*" CopyToOutputDirectory="PreserveNewest" />
+</ItemGroup>
+
+<ItemGroup>
+  <ProjectReference Include="..\devcontainer.core\devcontainer.core.csproj" />
 </ItemGroup>
 
 </Project>

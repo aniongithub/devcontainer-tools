@@ -1,13 +1,8 @@
-﻿using Anotar.LibLog;
-using CliWrap;
-using CommandLine;
-
+﻿using CommandLine;
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
+using System.Linq;
 
-using Newtonsoft.Json;
+using devcontainer.core;
 
 namespace devcontainer
 {
@@ -15,163 +10,77 @@ namespace devcontainer
     {
         static void Main(string[] args)
         {
-            Logging.LogProvider.SetCurrentLogProvider(new Logging.ColoredConsoleLogProvider());
-
-            Parser.Default.ParseArguments<InitOptions, ActivateOptions, LSOptions>(args)
+            // Parse command line arguments
+            Parser.Default
+                // Register all our verbs
+                .ParseArguments<InitOptions, 
+                                ActivateOptions, 
+                                LSOptions, 
+                                RunOptions,
+                                StartOptions,
+                                StopOptions,
+                                StatusOptions,
+                                ExecOptions>(args)
+                // Execute verb handlers
                 .WithParsed<InitOptions>(opts => Init(opts))
                 .WithParsed<ActivateOptions>(opts => Activate(opts))
                 .WithParsed<LSOptions>(opts => List(opts))
+                .WithParsed<RunOptions>(opts => Run(opts))
+                .WithParsed<StartOptions>(opts => Start(opts))
+                .WithParsed<StopOptions>(opts => Stop(opts))
+                .WithParsed<StatusOptions>(opts => Status(opts))
+                .WithParsed<ExecOptions>(opts => Exec(opts))
+                // Print any errors to stderr
                 .WithNotParsed(err => Console.Error.WriteLine($"{string.Join(',', err)}"));
         }
 
         static void Init(InitOptions opts)
         {
-            var customVars = new Dictionary<string, string> {
-                { "DEVCONTAINER_NAME", opts.Name ?? opts.TemplateName  },
-                { "DEVCONTAINER_ID", opts.Id },
-                { "DEVCONTAINER_DEV_DOCKERFILE", opts.DevDockerfile },
-                { "DEVCONTAINER_BASE_DOCKERFILE", opts.Dockerfile },
-                { "DEVCONTAINER_CONTEXT", opts.Context },
-                { "DEVCONTAINER_SHUTDOWN_ACTION", opts.ShutdownAction },
-                { "DEVCONTAINER_SHELL", opts.Shell },
-                { "DEVCONTAINER_WORKSPACE_ROOT", opts.WorkspaceRoot }
-            };
-
-            // Set Name to TemplateName if not set
-            if (opts.Name == Defaults.Name)
-            {
-                opts.Name = opts.TemplateName;
-                customVars["NAME"] = opts.TemplateName;
-            }
-            
-            // Find the source template
-            var sourceTemplatePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, Defaults.TemplatesPath, opts.TemplateName);
-            if (!Directory.Exists(sourceTemplatePath))
-            {
-                LogTo.Error($"Could not find template {opts.TemplateName}!");
-                Environment.Exit(1);
-            }
-            else
-                LogTo.Info($"Found {opts.TemplateName}");
-
-            // Create blank Dockerfile if needed
-            if (!File.Exists(Path.Combine(opts.Context, opts.Dockerfile)))
-            {
-                LogTo.Warn($"No Dockerfile was found in \"{opts.Context}\", creating blank Dockerfile {opts.Dockerfile}. Please update this to install any prerequisites your build environment needs");
-                opts.Context.EnsureDirectoriesExist();
-                File.WriteAllText(Path.Combine(opts.Context, opts.Dockerfile), Defaults.DefaultDockerfileContents);
-            }
-            else
-                LogTo.Info($"{opts.Dockerfile} found, will use to build base image");
-
-            // Create .devcontainer folder
-            var devContainerFolder = Path.Combine(opts.Context, Defaults.DevContainerFolder)
-                .EnsureDirectoriesExist();
-
-            // Create our destination template folder
-            var destTemplatePath = Path.Combine(devContainerFolder, opts.Name)
-                .EnsureDirectoriesExist();
-
-            // Create devcontainer.env file
-            var devContainerEnvFilename = Path.Combine(destTemplatePath, Defaults.DevContainerEnvFilename);
-            if (!File.Exists(devContainerEnvFilename))
-            {
-                LogTo.Info($"Writing {devContainerEnvFilename}...");
-                customVars.WriteEnvFile(devContainerEnvFilename);
-            }
-            else
-                LogTo.Info($"Found {devContainerEnvFilename}, re-using");
-
-            // Copy to our destination path
-            // Process variables, but pass through unknowns
-            sourceTemplatePath.CopyTo(destTemplatePath, overwrite: opts.Overwrite,
-                onCopyFile: (src, dst) => customVars.Process(src, dst, opts.Overwrite, passthroughUnknowns: true));
+            Devcontainer.Init(opts);
         }
 
         static void Activate(ActivateOptions opts)
         {
-            var sourceTemplatePath = Path.Combine(Environment.CurrentDirectory, Defaults.DevContainerFolder, opts.Name);
-            if (!Directory.Exists(sourceTemplatePath))
-            {
-                Console.Error.WriteLine($"Cannot find saved devcontainer with name {opts.Name}");
-                Environment.Exit(1);
-            }
-            LogTo.Info($"Activating template {opts.Name} from {sourceTemplatePath}");
-
-            var destPath = Path.Combine(sourceTemplatePath, "..");
-            var devContainerEnvFilename = Path.Combine(destPath, Defaults.DevContainerEnvFilename);
-
-            if (Extensions.RunningInContainer() &&
-                ((Environment.GetEnvironmentVariable("HOST_USER_UID") == null) ||
-                 (Environment.GetEnvironmentVariable("HOST_USER_GID") == null) ||
-                 (Environment.GetEnvironmentVariable("HOST_USER_NAME") == null)))
-            {
-                Console.Error.WriteLine($"Can't init within a container without access to $HOST_USER_UID, $HOST_USER_GID or $HOST_USER_NAME");
-                Environment.Exit(1);
-            }
-            else
-                LogTo.Info("Found, using $HOST_USER_UID, $HOST_USER_GID and $HOST_USER_NAME");
-
-            var customVars = Extensions.RunningInContainer() ?
-            new Dictionary<string, string> {
-                { "HOST_USER_UID", Environment.GetEnvironmentVariable("HOST_USER_UID") },
-                { "HOST_USER_GID", Environment.GetEnvironmentVariable("HOST_USER_GID") },
-                { "HOST_USER_NAME", Environment.GetEnvironmentVariable("HOST_USER_NAME") }
-            } :
-            new Dictionary<string, string> {
-                { "HOST_USER_UID", Cli.Wrap("id").SetArguments("-u").Execute().StandardOutput.Trim('\r','\n', ' ') },
-                { "HOST_USER_GID", Cli.Wrap("id").SetArguments("-g").Execute().StandardOutput.Trim('\r','\n', ' ') },
-                { "HOST_USER_NAME", Environment.GetEnvironmentVariable("USER") }
-            };
-
-            // This time, merge custom vars with the environment
-            // Environment vars overwrite any custom vars
-            var mergedEnv = Environment
-                .GetEnvironmentVariables()
-                .ToReadOnlyDictionary()
-                .MergeWithUpdates(customVars);
-
-            // Substitute vars with environment values and activate as current devcontainer
-            sourceTemplatePath.CopyTo(destPath,
-                onCopyFile: (src, dst) => mergedEnv.Process(src, dst, opts.DiscardChanges, passthroughUnknowns: true));
-            
-            LogTo.Info($"Appending user-specific env settings...");
-            customVars.AppendToEnvFile(devContainerEnvFilename);
+            Devcontainer.Activate(opts);
         }
 
         static void List(LSOptions opts)
         {
-            var devcontainerFolder = Path.Combine(opts.Context, Defaults.DevContainerFolder);
-            if (!Directory.Exists(devcontainerFolder))
-            {
-                LogTo.Info("No saved or current devcontainers!");
-                Environment.Exit(0);
-            }
+            foreach (var desc in Devcontainer.List(opts))
+                Console.WriteLine($"[{(desc.Value.active ? "curr" : "saved")}] {desc.Value.name}");
+        }
 
-            foreach (var subdir in Directory.GetDirectories(devcontainerFolder))
-                Console.WriteLine(Path.GetFileName(subdir));
-
-            var devcontainerJsonFilename = Path.Combine(devcontainerFolder, Defaults.DevContainerJsonFilename);
-            if (File.Exists(devcontainerJsonFilename))
-            {
-                var devcontainerDesc = JsonConvert.DeserializeObject<DevcontainerDesc>(File.ReadAllText(devcontainerJsonFilename));
-                Console.WriteLine($"[current] {devcontainerDesc.name}");
-            }
-            else
-                Console.WriteLine($"[current] (none)");
+        static void Run(RunOptions opts)
+        {
+            Devcontainer.Run(opts);
         }
 
         static void Start(StartOptions opts)
         {
-
+            Devcontainer.Start(opts);
         }
+
         static void Stop(StopOptions opts)
         {
-
+            Devcontainer.Stop(opts);
         }
-        static void Connect(ConnectOptions opts)
+        static void Status(StatusOptions opts)
         {
-
+            var devcontainerName = (from desc in Devcontainer.List(new LSOptions { Context = opts.Context }) 
+                                    where desc.Value.active 
+                                    select desc.Value.name)
+                                    .FirstOrDefault();
+            if (devcontainerName == null)
+            {
+                Console.WriteLine($"No active devcontainers found in {opts.Context}");
+                return;
+            }
+            var running = Devcontainer.Status(opts);
+            Console.WriteLine($"Active devcontainer \"{devcontainerName}\" is {(running ? "running" : "not running")}");
+        }
+        static void Exec(ExecOptions opts)
+        {
+            Devcontainer.Exec(opts);
         }
     }
 }

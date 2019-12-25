@@ -5,6 +5,8 @@ VisualStudioVersion = 15.0.26124.0
 MinimumVisualStudioVersion = 15.0.26124.0
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "devcontainer", "devcontainer\devcontainer.csproj", "{3A3F0FB7-62C6-44E8-81E1-E3970AA06BB8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "devcontainer.core", "devcontainer.core\devcontainer.core.csproj", "{52140ADA-B178-4844-BF33-DCA849211AC1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -42,5 +44,17 @@ Global
 		{3A3F0FB7-62C6-44E8-81E1-E3970AA06BB8}.Release|x64.Build.0 = Release|Any CPU
 		{3A3F0FB7-62C6-44E8-81E1-E3970AA06BB8}.Release|x86.ActiveCfg = Release|Any CPU
 		{3A3F0FB7-62C6-44E8-81E1-E3970AA06BB8}.Release|x86.Build.0 = Release|Any CPU
+		{52140ADA-B178-4844-BF33-DCA849211AC1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{52140ADA-B178-4844-BF33-DCA849211AC1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{52140ADA-B178-4844-BF33-DCA849211AC1}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{52140ADA-B178-4844-BF33-DCA849211AC1}.Debug|x64.Build.0 = Debug|Any CPU
+		{52140ADA-B178-4844-BF33-DCA849211AC1}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{52140ADA-B178-4844-BF33-DCA849211AC1}.Debug|x86.Build.0 = Debug|Any CPU
+		{52140ADA-B178-4844-BF33-DCA849211AC1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{52140ADA-B178-4844-BF33-DCA849211AC1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{52140ADA-B178-4844-BF33-DCA849211AC1}.Release|x64.ActiveCfg = Release|Any CPU
+		{52140ADA-B178-4844-BF33-DCA849211AC1}.Release|x64.Build.0 = Release|Any CPU
+		{52140ADA-B178-4844-BF33-DCA849211AC1}.Release|x86.ActiveCfg = Release|Any CPU
+		{52140ADA-B178-4844-BF33-DCA849211AC1}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
