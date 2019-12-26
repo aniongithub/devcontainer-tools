@@ -1,0 +1,9 @@
+{
+	"name": "test",
+	"context": "..",
+	"workspaceFolder": "/workspace/",
+	"dockerComposeFile": "docker-compose.yml",
+	"service": "test-d0bf32522a224325880b033e39be3399-devcontainer",
+	"shutdownAction": "stopCompose",
+    "settings": { "terminal.integrated.shell.linux": "/bin/bash" }
+}

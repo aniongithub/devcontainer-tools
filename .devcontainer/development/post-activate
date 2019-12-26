@@ -1,0 +1,4 @@
+#! /bin/bash
+
+echo "Post activate hook for template: $DEVCONTAINER_NAME running in $PWD"
+code --wait --new-window --folder-uri $PWD
