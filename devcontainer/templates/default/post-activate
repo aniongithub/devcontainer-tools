@@ -13,11 +13,8 @@ echo "Host setup goes here"
 # Ensure that the command you provide does not return before the 
 # editor/shell has exited, or cleanup will take place too early
 
-# Here's how to launch Visual Studio Code in a new window
-# with current env and wait till it's closed
-
-# code --wait --new-window --folder-uri $PWD
 echo "Start our development/build environment here"
+( source ./.devcontainer/launch-env; wait )
 
 # Run host cleanup stuff here after our editor has shut down
 # ex: docker machine env -u, unset modprobe -r, etc.
