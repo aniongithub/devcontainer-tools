@@ -10,6 +10,15 @@ namespace devcontainer.core
 {
     public static class Devcontainer
     {
+        private static bool RunningInContainer()
+        {
+            var filename = $"/proc/1/cgroup";
+            if (!File.Exists(filename))
+                return false;
+            var text = File.ReadAllText(filename);
+            return text.Contains("/docker/");
+        }
+        
         public static bool Init(IInitOptions opts)
         {
             try
@@ -22,8 +31,7 @@ namespace devcontainer.core
                     { "DEVCONTAINER_CONTEXT", opts.Context },
                     { "DEVCONTAINER_SHUTDOWN_ACTION", opts.ShutdownAction },
                     { "DEVCONTAINER_SHELL", opts.Shell },
-                    { "DEVCONTAINER_WORKSPACE_ROOT", opts.WorkspaceRoot },
-                    { "TERM", "linux" }
+                    { "DEVCONTAINER_WORKSPACE_ROOT", opts.WorkspaceRoot }
                 };
 
                 // Set Name to TemplateName if not set
@@ -81,7 +89,7 @@ namespace devcontainer.core
             }
         }
 
-        // TODO: Add pre-activate and post-activate script hook support
+        // TODO: Add timeout and cancellation support for hook execution
         public static bool Activate(IActivateOptions opts)
         {
             try
@@ -94,10 +102,40 @@ namespace devcontainer.core
                 }
                 Console.WriteLine($"Activating template {opts.Name} from {sourceTemplatePath}");
 
+                if (!opts.DisableHooks)
+                {
+                    // Is there a pre-activate hook?
+                    var templatePath = Path.Combine(Environment.CurrentDirectory, Defaults.DevContainerFolder, opts.Name);
+                    var preActivateHook = Path.Combine(templatePath, Defaults.PreActivateHook);
+                    if (File.Exists(preActivateHook))
+                    {
+                        // Yes, run it
+                        Console.WriteLine($"Found pre-activate hook for template {opts.Name} from {sourceTemplatePath}");
+                        try
+                        {
+                            var templateEnv = Path.Combine(Environment.CurrentDirectory, Defaults.DevContainerFolder, opts.Name, Defaults.DevContainerEnvFile)
+                                .LoadEnvFile();
+                            var result = Cli.Wrap(preActivateHook)
+                                .SetEnvironmentVariables(templateEnv)
+                                .SetWorkingDirectory(Environment.CurrentDirectory)
+                                .SetStandardOutputCallback(l => Console.WriteLine(l))
+                                .SetStandardErrorCallback(l => Console.Error.WriteLine(l))
+                                .Execute();
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.Error.WriteLine($"Error running pre-activate hook! {ex.Message}\n{ex.StackTrace}");
+                            return false;
+                        }
+                    }
+                }
+                else
+                    Console.WriteLine($"Hooks disabled for {opts.Name} from {sourceTemplatePath}");
+
                 var destPath = Path.Combine(sourceTemplatePath, "..");
                 var devContainerEnvFilename = Path.Combine(destPath, Defaults.DevContainerEnvFile);
 
-                if (Extensions.RunningInContainer() &&
+                if (RunningInContainer() &&
                     ((Environment.GetEnvironmentVariable("HOST_USER_UID") == null) ||
                     (Environment.GetEnvironmentVariable("HOST_USER_GID") == null) ||
                     (Environment.GetEnvironmentVariable("HOST_USER_NAME") == null)))
@@ -108,7 +146,7 @@ namespace devcontainer.core
                 else
                     Console.WriteLine("Found, using $HOST_USER_UID, $HOST_USER_GID and $HOST_USER_NAME");
 
-                var customVars = Extensions.RunningInContainer() ?
+                var customVars = RunningInContainer() ?
                 new Dictionary<string, string> {
                     { "HOST_USER_UID", Environment.GetEnvironmentVariable("HOST_USER_UID") },
                     { "HOST_USER_GID", Environment.GetEnvironmentVariable("HOST_USER_GID") },
@@ -133,6 +171,35 @@ namespace devcontainer.core
                 
                 Console.WriteLine($"Appending user-specific env settings...");
                 customVars.AppendToEnvFile(devContainerEnvFilename);
+
+                if (!opts.DisableHooks)
+                {
+                    // Is there a post-activate hook?
+                    var templatePath = Path.Combine(Environment.CurrentDirectory, Defaults.DevContainerFolder, opts.Name);
+                    var postActivateHook = Path.Combine(templatePath, Defaults.PostActivateHook);
+                    if (File.Exists(postActivateHook))
+                    {
+                        // Yes, run it
+                        Console.WriteLine($"Found post-activate hook for template {opts.Name} from {sourceTemplatePath}");
+                        try
+                        {
+                            var templateEnv = Path.Combine(Environment.CurrentDirectory, Defaults.DevContainerFolder, opts.Name, Defaults.DevContainerEnvFile)
+                                .LoadEnvFile();
+                            var result = Cli.Wrap(postActivateHook)
+                                .SetEnvironmentVariables(templateEnv)
+                                .SetWorkingDirectory(Environment.CurrentDirectory)
+                                .SetStandardOutputCallback(l => Console.WriteLine(l))
+                                .SetStandardErrorCallback(l => Console.Error.WriteLine(l))
+                                .Execute();
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.Error.WriteLine($"Error running post-activate hook! {ex.Message}\n{ex.StackTrace}");
+                            return false;
+                        }
+                    }
+                }
+
                 return true;
             }
             catch (Exception ex)

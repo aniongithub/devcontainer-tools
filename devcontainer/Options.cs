@@ -57,6 +57,9 @@ namespace devcontainer
 
         [Option('d', "discard-changes", Default = false, HelpText = "Discard any changes to files in the root devcontainer folder during activation")]
         public bool DiscardChanges { get; set; }
+
+        [Option("disable-hooks", Default = false, HelpText = "Don't run any hooks when activating the template")]
+        public bool DisableHooks { get; set; }
     }
 
     [Verb("ls", HelpText = "List all available devcontainers")]

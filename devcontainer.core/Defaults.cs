@@ -27,6 +27,9 @@ namespace devcontainer.core
 
         public const string DefaultDockerfileContents = @"FROM scratch
 # TODO: Install any dependencies or tools here ...";
+
+        public const string PreActivateHook = "pre-activate";
+        public const string PostActivateHook = "post-activate";
     }
 
 }

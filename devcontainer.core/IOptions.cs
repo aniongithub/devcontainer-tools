@@ -18,6 +18,8 @@ namespace devcontainer.core
     {
         string Name { get; }
         bool DiscardChanges { get; }
+
+        bool DisableHooks { get; }
     }
 
     public interface ILSOptions

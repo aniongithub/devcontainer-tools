@@ -6,10 +6,12 @@ using System.Text.RegularExpressions;
 using System.Collections;
 using System.Collections.Generic;
 
+using CliWrap;
+using System.Diagnostics;
 
 namespace devcontainer
 {
-    public static class Extensions
+    internal static class Extensions
     {
         private const string NameGroup = "name";
         private const string DefaultGroup = "default";
@@ -147,13 +149,33 @@ namespace devcontainer
             return result;
         }
 
-        public static bool RunningInContainer()
+        public static ICli SetEnvironmentVariables(this ICli cli, IReadOnlyDictionary<string, string> env)
         {
-            var filename = $"/proc/1/cgroup";
-            if (!File.Exists(filename))
-                return false;
-            var text = File.ReadAllText(filename);
-            return text.Contains("/docker/");
+            foreach (var kvp in env)
+                cli = cli.SetEnvironmentVariable(kvp.Key, kvp.Value);
+            
+            return cli;                
+        }
+
+        public static string Bash(this string cmd)
+        {
+            var escapedArgs = cmd.Replace("\"", "\\\"");
+            
+            var process = new Process()
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "/bin/bash",
+                    Arguments = $"-c \"{escapedArgs}\"",
+                    RedirectStandardOutput = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                }
+            };
+            process.Start();
+            string result = process.StandardOutput.ReadToEnd();
+            process.WaitForExit();
+            return result;
         }
     }
 }
