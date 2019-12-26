@@ -1,0 +1,18 @@
+version: "3"
+services:
+  aws-dev-477944f57fb141e191003bc408dca004-base:
+    image: aws-dev-477944f57fb141e191003bc408dca004-base
+    build:
+      context: ..
+      dockerfile: Dockerfile
+  aws-dev-477944f57fb141e191003bc408dca004-devcontainer:
+    depends_on: [ "aws-dev-477944f57fb141e191003bc408dca004-base" ]
+    image: aws-dev-477944f57fb141e191003bc408dca004-devcontainer
+    env_file:
+      - devcontainer.env
+    build:
+      context: ..
+      dockerfile: .devcontainer/dev.Dockerfile
+    volumes:
+      - ../.:/workspace
+    command: /bin/sh -c "while sleep 1000; do :; done"

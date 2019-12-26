@@ -1,0 +1,9 @@
+{
+	"name": "aws-dev",
+	"context": "..",
+	"workspaceFolder": "/workspace/",
+	"dockerComposeFile": "docker-compose.yml",
+	"service": "aws-dev-477944f57fb141e191003bc408dca004-devcontainer",
+	"shutdownAction": "stopCompose",
+	"settings": { "terminal.integrated.shell.linux": "/bin/bash" }
+}

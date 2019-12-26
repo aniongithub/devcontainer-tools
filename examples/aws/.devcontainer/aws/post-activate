@@ -1,0 +1,20 @@
+#! /bin/bash
+
+# This hook runs AFTER the devcontainer files have been copied and user-specific
+# env settings appended.
+
+echo "Post activate hook for template: $DEVCONTAINER_NAME running in $PWD"
+
+docker-machine create --driver amazonec2 --amazonec2-region us-west-2 aws-sandbox
+eval $(docker-machine env aws-sandbox)
+
+# Launch shell/development environment here
+# Ensure that the command you provide does not return before the 
+# editor/shell has exited, or cleanup will take place too early
+
+echo "Opening configured terminal window,"
+( source ./.devcontainer/launch-env; wait )
+
+# Run host cleanup stuff here after our editor has shut down
+# ex: docker machine env -u, unset modprobe -r, etc.
+docker-machine rm -y aws-sandbox
