@@ -6,6 +6,7 @@ Reverse SSHFS for mounting a local filesystem via FUSE: https://gist.github.com/
 Passwordless SSH and docker-machine setup: https://gist.github.com/aniongithub/182a0e2eba06014bfb6a6addc90fbe12
 Convert output of docker-machine env to be JSON-compatible: docker-machine env <machinename> | sed -e 's/\<export\>\s//g' | sed '/^#/ d' | sed -r 's/[=]+/":/g' | sed 's/^/"/'
 Add stuff to json file using jq: cat devcontainer.json | jq '. + { "remoteEnv": { $JSON_COMPAT_VALUES } }'
+Docker machine SSH: https://docs.docker.com/v17.09/machine/reference/ssh/
 
 # Example post-activate hook that creates+merges+writes a .vscode/settings.json using jq
 # Use this as the template for any templates that need to change docker env
