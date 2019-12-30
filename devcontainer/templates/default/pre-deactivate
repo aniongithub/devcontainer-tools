@@ -1,0 +1,6 @@
+#! /bin/bash
+
+# This hook runs BEFORE any files are deleted from the active devcontainer folder
+# If you want to destroy any resources created during post-activate, this is where you want to do it
+
+echo "Pre-deactivate hook for template: $DEVCONTAINER_NAME running in $PWD"

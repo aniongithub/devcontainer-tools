@@ -1,4 +1,0 @@
-#! /bin/bash
-
-# Launch a terminal with our current environment
-gnome-terminal --disable-factory

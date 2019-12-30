@@ -8,6 +8,7 @@ using System.Collections.Generic;
 
 using CliWrap;
 using System.Diagnostics;
+using Mono.Unix;
 
 namespace devcontainer
 {
@@ -15,12 +16,13 @@ namespace devcontainer
     {
         private const string NameGroup = "name";
         private const string DefaultGroup = "default";
-        public static readonly Regex TemplateVarMatcher = new Regex(@"(?!(""))\$\{(?<name>[^}:]+)(\:-?(?<default>.*))?\}", 
+        public static readonly Regex TemplateVarMatcher = new Regex(@"(?!(""))\$\{(template\:)(?<name>[^}:]+)(\:-?(?<default>.*))?\}", 
             RegexOptions.ExplicitCapture | RegexOptions.Compiled | RegexOptions.Multiline);
-
-        public static string PerformTemplateSubstitutions(this string templateContent, IReadOnlyDictionary<string, string> values, bool passthroughUnknowns = false)
+        public static string PerformTemplateSubstitutions(this string templateContent, IDictionary<string, string> values, bool passthroughUnknowns = false,
+            Regex matcher = null)
         {
-            return TemplateVarMatcher.Replace(templateContent, match => 
+            matcher = matcher ?? TemplateVarMatcher;
+            return matcher.Replace(templateContent, match => 
             {
                 var name = match.Groups[NameGroup].Value;
                 var found = values.TryGetValue(name, out var value);
@@ -31,14 +33,45 @@ namespace devcontainer
             });
         }
 
-        public static IReadOnlyDictionary<TKey, TValue> MergeWithUpdates<TKey, TValue>(this IReadOnlyDictionary<TKey, TValue> first, IReadOnlyDictionary<TKey, TValue> second)
+        public static IDictionary<TKey, TValue> MergeWithUpdates<TKey, TValue>(this IDictionary<TKey, TValue> first, IDictionary<TKey, TValue> second)
         {
             return first.Concat(second)
                 .GroupBy(kvp => kvp.Key, kvp => kvp.Value)
                 .ToDictionary(g => g.Key, g => g.Last());
         }
+        public static IDictionary<TKey, TValue> MergeInPlaceWithUpdates<TKey, TValue>(this IDictionary<TKey, TValue> first, IDictionary<TKey, TValue> second)
+        {
+            var merged = first.Concat(second)
+                .GroupBy(kvp => kvp.Key, kvp => kvp.Value)
+                .ToDictionary(g => g.Key, g => g.Last());
+            first.Clear();
+            foreach (var kvp in merged)
+                first.Add(kvp.Key, kvp.Value);
 
-        public static IReadOnlyDictionary<string, string> ToReadOnlyDictionary(this IDictionary dictionary)
+            return first;
+        }
+
+        public static bool CreateOrMerge(this string envFilename, IDictionary<string, string> env)
+        {
+            try
+            {
+                if (!File.Exists(envFilename))
+                    env.WriteEnvFile(envFilename);
+                else
+                    envFilename
+                        .LoadEnvFile()
+                        .MergeWithUpdates(env)
+                        .WriteEnvFile(envFilename);
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"Exception: {ex.Message}\n{ex.StackTrace}");
+                return false;
+            }
+            return true;
+        }
+
+        public static IDictionary<string, string> ToDictionary(this IDictionary dictionary)
         {
             var result = new Dictionary<string, string>();
             foreach (DictionaryEntry entry in dictionary)
@@ -47,7 +80,7 @@ namespace devcontainer
             return result;
         }
 
-        public static void Process(this IReadOnlyDictionary<string, string> env, string sourceFilename, string destFilename, bool overwrite = false, bool passthroughUnknowns = false)
+        public static void Process(this IDictionary<string, string> env, string sourceFilename, string destFilename, bool overwrite = false, bool passthroughUnknowns = false)
         {
             var text = File.ReadAllText(sourceFilename)
                 .PerformTemplateSubstitutions(env, passthroughUnknowns);
@@ -58,46 +91,48 @@ namespace devcontainer
                 File.WriteAllText(destFilename, text);
         }
 
-        public static void CopyTo(this string sourceFolder, string destinationFolder, string mask = "*.*", bool createFolders = true, bool recurseFolders = true, bool overwrite = false, 
-            Action<string, string> onCopyFile = null, bool overWrite = false)
+        public static void CopyTo(this string sourceFolder, string destinationFolder, string mask = "*.*", 
+            bool createFolders = true, bool recurseFolders = true, bool overwrite = false, 
+            Action<string, string> onCopyFile = null, bool copyPermissions = true)
         {
             try
             {
-                var exDir = sourceFolder;
-                var dir = new DirectoryInfo(exDir);
-                SearchOption so = (recurseFolders ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
+                var dir = new DirectoryInfo(sourceFolder);
+                var so = (recurseFolders ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
 
                 foreach (string sourceFile in Directory.GetFiles(dir.ToString(), mask, so))
                 {
                     var srcFile = new FileInfo(sourceFile);
                     string srcFileName = srcFile.Name;
 
-                    var destFile = new FileInfo(destinationFolder + srcFile.FullName.Replace(sourceFolder, ""));
+                    var dstFile = new FileInfo(destinationFolder + srcFile.FullName.Replace(sourceFolder, ""));
 
-                    if (!Directory.Exists(destFile.DirectoryName ) && createFolders)
+                    if (!Directory.Exists(dstFile.DirectoryName ) && createFolders)
                     {
-                        Directory.CreateDirectory(destFile.DirectoryName);
-                        Console.WriteLine($"Creating folder {destFile.DirectoryName}...");
+                        Directory.CreateDirectory(dstFile.DirectoryName);
+                        Console.WriteLine($"Creating folder {dstFile.DirectoryName}...");
                     }
 
                     if (onCopyFile == null)
                     {
-                        Console.WriteLine("Using default copy");
-                        if (File.Exists(destFile.FullName) && !overWrite)
-                        {
-                            Console.Error.WriteLine($"Destination file {destFile.FullName} exists and over-writing is forbidden. Skipping.");
-                            continue;
-                        }
-                        else
-                        {
-                            Console.WriteLine($"Copying {srcFile.FullName} -> {destFile.FullName}");
-                            File.Copy(srcFile.FullName, destFile.FullName, overwrite);
-                        }
+                        Console.WriteLine($"Using default copy, overwrite is: {overwrite}");
+                        Console.WriteLine($"Copying {srcFile.FullName} -> {dstFile.FullName}");
+                        File.Copy(srcFile.FullName, dstFile.FullName, overwrite);
                     }
                     else
                     {
-                        Console.WriteLine($"Using custom copy for {srcFile.FullName} -> {destFile.FullName} ...");
-                        onCopyFile(srcFile.FullName, destFile.FullName);
+                        Console.WriteLine($"Using custom copy for {srcFile.FullName} -> {dstFile.FullName} ...");
+                        onCopyFile(srcFile.FullName, dstFile.FullName);
+                    }
+
+                    
+                    if (File.Exists(dstFile.FullName) && copyPermissions)
+                    {
+                        var srcFilePermissions = new UnixFileInfo(srcFile.FullName);
+                        var dstFilePermissions = new UnixFileInfo(dstFile.FullName);
+                        // If the file was copied and we've been asked to copy permissions, do so
+                        // https://stackoverflow.com/a/45135498/802203
+                        dstFilePermissions.FileAccessPermissions = srcFilePermissions.FileAccessPermissions;
                     }
                 }
             }
@@ -128,28 +163,34 @@ namespace devcontainer
             File.AppendAllText(filename, text.ToString());
         }
 
-        public static IReadOnlyDictionary<string, string> LoadEnvFile(this string filename)
+        public static IDictionary<string, string> LoadEnvFile(this string filename)
         {
             var result = new Dictionary<string, string>();
-            try
-            {
-                using (var reader = new StreamReader(filename))
-                while (!reader.EndOfStream)
+            if (File.Exists(filename))
+                try
                 {
-                    var line = reader.ReadLine();
-                    var parts = line.Split('=');
-                    result.Add(parts[0], parts[1]);
+                    using (var reader = new StreamReader(filename))
+                    while (!reader.EndOfStream)
+                    {
+                        var line = reader.ReadLine().Trim();
+                        
+                        // Ignore blank lines and any lines that begin with #
+                        // https://docs.docker.com/compose/env-file/
+                        if (line.StartsWith("#") || string.IsNullOrEmpty(line))
+                            continue;
+                        var parts = line.Split('=');
+                        result.Add(parts[0], parts[1]);
+                    }
                 }
-            }
-            catch (Exception ex)
-            {
-                Console.Error.WriteLine($"Exception: {ex.Message}\n{ex.StackTrace}");
-            }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine($"Exception: {ex.Message}\n{ex.StackTrace}");
+                }
 
             return result;
         }
 
-        public static ICli SetEnvironmentVariables(this ICli cli, IReadOnlyDictionary<string, string> env)
+        public static ICli SetEnvironmentVariables(this ICli cli, IDictionary<string, string> env)
         {
             foreach (var kvp in env)
                 cli = cli.SetEnvironmentVariable(kvp.Key, kvp.Value);
@@ -177,6 +218,91 @@ namespace devcontainer
             process.WaitForExit();
             return result;
         }
+
+        // Determine if a given file is binary or not
+        // Adapted from: https://stackoverflow.com/a/26652983/802203
+        private static char NUL = (char)0; // Null char
+        private static char BS = (char)8; // Back Space
+        private static char CR = (char)13; // Carriage Return
+        private static char SUB = (char)26; // Substitute
+        internal static bool isControlChar(this int ch)
+        {
+            return (ch > NUL && ch < BS)
+                || (ch > CR && ch < SUB);
+        }
+        public static bool IsBinary(this string path)
+        {
+            int ch;
+            using (var reader = new StreamReader(path))
+                while ((ch = reader.Read()) != -1)
+                    if (ch.isControlChar())
+                        return true;
+            return false;
+        }
+
+        private static readonly Regex RequiredVariables = new Regex(@"\$\{(?<variable>\w+)(\?(?<prompt>[^-:=}]+)})", RegexOptions.Compiled | RegexOptions.ExplicitCapture);
+
+        // TODO: Add timeout and cancellation support for hook execution
+        public static bool ExecuteHook(this string hookFilename, IDictionary<string, string> hookEnv, string workingDirectory = null, IDictionary<string, string> environment = null, bool forceReEntry = false)
+        {
+            // Initialize a blank environent if nothing has been provided
+            environment = environment ?? new Dictionary<string, string>();
+            workingDirectory = workingDirectory ?? Environment.CurrentDirectory;
+
+            try
+            {
+                if (File.Exists(hookFilename))
+                {
+                    try
+                    {
+                        // If the file isn't a binary file, load it and find variables of the form ${varName?Prompt to enter varName here}
+                        if (!hookFilename.IsBinary())
+                        {
+                            var matches = RequiredVariables.Matches(File.ReadAllText(hookFilename));
+                            foreach (Match match in matches)
+                            {
+                                var variableName = match.Groups["variable"].Value;
+                                var prompt = match.Groups["prompt"].Value;
+
+                                // Skip if pre-activate hook env already defines this required variable
+                                if (!forceReEntry && hookEnv.TryGetValue(variableName, out var definedValue))
+                                {
+                                    Console.WriteLine($"Skipping user-input of ${variableName} because it was already defined with value \"{definedValue}\"");
+                                    continue;
+                                }
+                                
+                                // Print the prompt and have the user enter the value
+                                Console.Write($"{prompt} > ");
+                                var variableValue = Console.ReadLine();
+
+                                // which we'll store in templateEnv
+                                hookEnv[variableName] = variableValue;
+                            }
+                        }
+
+                        // Now when we execute the hook, it will have the correct environment
+                        // pre-defined or otherwise
+                        var result = Cli.Wrap(hookFilename)
+                            .SetEnvironmentVariables(environment)
+                            .SetEnvironmentVariables(hookEnv) // Hook env. variables supersede passed-in env
+                            .SetWorkingDirectory(Environment.CurrentDirectory)
+                            .SetStandardOutputCallback(l => Console.WriteLine(l))
+                            .SetStandardErrorCallback(l => Console.Error.WriteLine(l))
+                            .Execute();
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.Error.WriteLine($"Error running hook \"{hookFilename}\"! {ex.Message}\n{ex.StackTrace}");
+                        return false;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"Exception: {ex.Message}\n{ex.StackTrace}");
+                return false;
+            }
+            return true;
+        }
     }
 }
-

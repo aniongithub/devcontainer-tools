@@ -14,7 +14,8 @@ namespace devcontainer
             Parser.Default
                 // Register all our verbs
                 .ParseArguments<InitOptions, 
-                                ActivateOptions, 
+                                ActivateOptions,
+                                DeactivateOptions,
                                 LSOptions, 
                                 RunOptions,
                                 StartOptions,
@@ -24,6 +25,7 @@ namespace devcontainer
                 // Execute verb handlers
                 .WithParsed<InitOptions>(opts => Init(opts))
                 .WithParsed<ActivateOptions>(opts => Activate(opts))
+                .WithParsed<DeactivateOptions>(opts => Deactivate(opts))
                 .WithParsed<LSOptions>(opts => List(opts))
                 .WithParsed<RunOptions>(opts => Run(opts))
                 .WithParsed<StartOptions>(opts => Start(opts))
@@ -42,6 +44,11 @@ namespace devcontainer
         static void Activate(ActivateOptions opts)
         {
             Devcontainer.Activate(opts);
+        }
+
+        static void Deactivate(DeactivateOptions opts)
+        {
+            Devcontainer.Deactivate(opts);
         }
 
         static void List(LSOptions opts)

@@ -1,21 +1,12 @@
 #! /bin/bash
 
 # This hook runs AFTER the devcontainer files have been copied and user-specific
-# env settings appended.
+# env settings appended. If you have any user-specific initialization to perform this
+# is the place for it
+
+# This is also the hook you want to use to create resources required for this template
+# to work - creating instances, attaching volumes, etc.
+
+# !! Remember to destroy those resources in the appropriate *-deactivate hooks !!
 
 echo "Post activate hook for template: $DEVCONTAINER_NAME running in $PWD"
-
-# Run any host setup commands here 
-# Ex: docker-machine env, docker buildx, xhost, modprobe, etc.
-echo "Host setup goes here"
-
-# Launch shell/development environment here
-# Ensure that the command you provide does not return before the 
-# editor/shell has exited, or cleanup will take place too early
-
-echo "Start our development/build environment here"
-( source ./.devcontainer/launch-env; wait )
-
-# Run host cleanup stuff here after our editor has shut down
-# ex: docker machine env -u, unset modprobe -r, etc.
-echo "Host cleanup goes here"

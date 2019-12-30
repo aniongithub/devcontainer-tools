@@ -9,7 +9,7 @@
             "program": "${workspaceFolder}/devcontainer/bin/Debug/netcoreapp3.0/devcontainer.dll",
             "args": [ "init", "default", "-n", "test"],
             "cwd": "${workspaceFolder}",
-            "console": "internalConsole",
+            "console": "integratedTerminal",
             "stopAtEntry": false
         },
         {
@@ -20,7 +20,7 @@
             "program": "${workspaceFolder}/devcontainer/bin/Debug/netcoreapp3.0/devcontainer.dll",
             "args": [ "init", "default", "-n", "test", "-o"],
             "cwd": "${workspaceFolder}",
-            "console": "internalConsole",
+            "console": "integratedTerminal",
             "stopAtEntry": false
         },
         {
@@ -31,7 +31,7 @@
             "program": "${workspaceFolder}/devcontainer/bin/Debug/netcoreapp3.0/devcontainer.dll",
             "args": [ "ls" ],
             "cwd": "${workspaceFolder}",
-            "console": "internalConsole",
+            "console": "integratedTerminal",
             "stopAtEntry": false
         },
         {
@@ -42,18 +42,29 @@
             "program": "${workspaceFolder}/devcontainer/bin/Debug/netcoreapp3.0/devcontainer.dll",
             "args": [ "activate", "test" ],
             "cwd": "${workspaceFolder}",
-            "console": "internalConsole",
+            "console": "integratedTerminal",
             "stopAtEntry": false
         },
         {
-            "name": "activate test -d",
+            "name": "activate test -o",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
             "program": "${workspaceFolder}/devcontainer/bin/Debug/netcoreapp3.0/devcontainer.dll",
-            "args": [ "activate", "test", "-d" ],
+            "args": [ "activate", "test", "-o" ],
             "cwd": "${workspaceFolder}",
-            "console": "internalConsole",
+            "console": "integratedTerminal",
+            "stopAtEntry": false
+        },
+        {
+            "name": "deactivate",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/devcontainer/bin/Debug/netcoreapp3.0/devcontainer.dll",
+            "args": [ "deactivate" ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
             "stopAtEntry": false
         },
         {
@@ -64,7 +75,7 @@
             "program": "${workspaceFolder}/devcontainer/bin/Debug/netcoreapp3.0/devcontainer.dll",
             "args": [ "run", "./build.sh" ],
             "cwd": "${workspaceFolder}",
-            "console": "internalConsole",
+            "console": "integratedTerminal",
             "stopAtEntry": false
         },
         {
@@ -75,7 +86,7 @@
             "program": "${workspaceFolder}/devcontainer/bin/Debug/netcoreapp3.0/devcontainer.dll",
             "args": [ "start" ],
             "cwd": "${workspaceFolder}",
-            "console": "internalConsole",
+            "console": "integratedTerminal",
             "stopAtEntry": false
         },
         {
@@ -86,7 +97,7 @@
             "program": "${workspaceFolder}/devcontainer/bin/Debug/netcoreapp3.0/devcontainer.dll",
             "args": [ "stop" ],
             "cwd": "${workspaceFolder}",
-            "console": "internalConsole",
+            "console": "integratedTerminal",
             "stopAtEntry": false
         },
         {
@@ -97,7 +108,7 @@
             "program": "${workspaceFolder}/devcontainer/bin/Debug/netcoreapp3.0/devcontainer.dll",
             "args": [ "status" ],
             "cwd": "${workspaceFolder}",
-            "console": "internalConsole",
+            "console": "integratedTerminal",
             "stopAtEntry": false
         },
         {

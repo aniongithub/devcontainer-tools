@@ -1,3 +1,6 @@
+using System.Xml.Linq;
+using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using CliWrap;
 
 using System;
@@ -5,6 +8,7 @@ using System.Collections.Generic;
 using System.IO;
 
 using Newtonsoft.Json;
+using System.Text.RegularExpressions;
 
 namespace devcontainer.core
 {
@@ -31,7 +35,8 @@ namespace devcontainer.core
                     { "DEVCONTAINER_CONTEXT", opts.Context },
                     { "DEVCONTAINER_SHUTDOWN_ACTION", opts.ShutdownAction },
                     { "DEVCONTAINER_SHELL", opts.Shell },
-                    { "DEVCONTAINER_WORKSPACE_ROOT", opts.WorkspaceRoot }
+                    { "DEVCONTAINER_WORKSPACE_ROOT", opts.WorkspaceRoot },
+                    { "DEVCONTAINER_ENV_FILE", Defaults.DefaultEnvFile }
                 };
 
                 // Set Name to TemplateName if not set
@@ -47,10 +52,29 @@ namespace devcontainer.core
                 else
                     Console.WriteLine($"Found {opts.TemplateName}");
 
+                var templateEnv = Path.Combine(sourceTemplatePath, Defaults.DefaultEnvFile).LoadEnvFile();
+                if (!opts.DisableHooks)
+                {
+                    // Is there a pre-initialize hook?
+                    var preInitializeHook = Path.Combine(sourceTemplatePath, Defaults.PreInitializeHook);
+
+                    // Precedence is templateEnv < preInitializeHookEnv
+                    var preInitializeHookEnv = Path.Combine(sourceTemplatePath, Defaults.PreInitializeHookEnvFile).LoadEnvFile();
+                    var mergedPreInitializeEnv = templateEnv
+                        .MergeWithUpdates(preInitializeHookEnv);
+
+                    // Execute the hook
+                    Console.WriteLine($"Executing pre-initialize hook for template {opts.Name} from {sourceTemplatePath}");
+                    if (!preInitializeHook.ExecuteHook(mergedPreInitializeEnv, environment: templateEnv))
+                        return false;
+                }
+                else
+                    Console.WriteLine($"Hooks disabled for {opts.Name} from {sourceTemplatePath}");
+
                 // Create blank Dockerfile if needed
                 if (!File.Exists(Path.Combine(opts.Context, opts.Dockerfile)))
                 {
-                    Console.Error.WriteLine($"No Dockerfile was found in \"{opts.Context}\", creating blank Dockerfile {opts.Dockerfile}. Please update this to install any prerequisites your build environment needs");
+                    Console.Error.WriteLine($"No Dockerfile was found in \"{opts.Context}\", creating blank Dockerfile {opts.Dockerfile}\nPlease update this to install any prerequisites your environment needs");
                     opts.Context.EnsureDirectoriesExist();
                     File.WriteAllText(Path.Combine(opts.Context, opts.Dockerfile), Defaults.DefaultDockerfileContents);
                 }
@@ -65,20 +89,31 @@ namespace devcontainer.core
                 var destTemplatePath = Path.Combine(devContainerFolder, name)
                     .EnsureDirectoriesExist();
 
-                // Create devcontainer.env file
-                var devContainerEnvFilename = Path.Combine(destTemplatePath, Defaults.DevContainerEnvFile);
-                if (!File.Exists(devContainerEnvFilename))
-                {
-                    Console.WriteLine($"Writing {devContainerEnvFilename}...");
-                    customVars.WriteEnvFile(devContainerEnvFilename);
-                }
-                else
-                    Console.WriteLine($"Found {devContainerEnvFilename}, re-using");
-
                 // Copy to our destination path
-                // Process variables, but pass through unknowns
                 sourceTemplatePath.CopyTo(destTemplatePath, overwrite: opts.Overwrite,
-                    onCopyFile: (src, dst) => customVars.Process(src, dst, opts.Overwrite, passthroughUnknowns: true));
+                    onCopyFile: (source, dest) => File.WriteAllText(dest,
+                        Extensions.PerformTemplateSubstitutions(File.ReadAllText(source), customVars, 
+                        passthroughUnknowns: true)));
+                
+                // Create/merge .env file
+                var devContainerEnvFilename = Path.Combine(destTemplatePath, Defaults.DefaultEnvFile);
+                devContainerEnvFilename.CreateOrMerge(customVars);
+
+                if (!opts.DisableHooks)
+                {
+                    // Is there a post-initialize hook?
+                    var postInitializeHook = Path.Combine(destTemplatePath, Defaults.PostInitializeHook);
+
+                    // Precedence is templateEnv < postInitializeHookEnv
+                    var postInitializeHookEnv = Path.Combine(destTemplatePath, Defaults.PostInitializeHookEnvFile).LoadEnvFile();
+                    var mergedPostInitializeEnv = templateEnv
+                        .MergeWithUpdates(postInitializeHookEnv);
+
+                    // Execute the hook
+                    Console.WriteLine($"Executing post-initialize hook for template {opts.Name} from {destTemplatePath}");
+                    if (!postInitializeHook.ExecuteHook(mergedPostInitializeEnv, environment: templateEnv))
+                        return false;
+                }
 
                 return true;
             }
@@ -89,7 +124,9 @@ namespace devcontainer.core
             }
         }
 
-        // TODO: Add timeout and cancellation support for hook execution
+        // Regex to find variables for entry/replacement
+        private static readonly Regex RequiredVariables = new Regex(@"\$\{(?<variable>\w+)(\?(?<prompt>[^-:=}]+)})", RegexOptions.Compiled | RegexOptions.ExplicitCapture);
+
         public static bool Activate(IActivateOptions opts)
         {
             try
@@ -102,39 +139,29 @@ namespace devcontainer.core
                 }
                 Console.WriteLine($"Activating template {opts.Name} from {sourceTemplatePath}");
 
+                var templateEnv = Path.Combine(sourceTemplatePath, Defaults.DefaultEnvFile).LoadEnvFile();
+
                 if (!opts.DisableHooks)
                 {
                     // Is there a pre-activate hook?
-                    var templatePath = Path.Combine(Environment.CurrentDirectory, Defaults.DevContainerFolder, opts.Name);
-                    var preActivateHook = Path.Combine(templatePath, Defaults.PreActivateHook);
-                    if (File.Exists(preActivateHook))
-                    {
-                        // Yes, run it
-                        Console.WriteLine($"Found pre-activate hook for template {opts.Name} from {sourceTemplatePath}");
-                        try
-                        {
-                            var templateEnv = Path.Combine(Environment.CurrentDirectory, Defaults.DevContainerFolder, opts.Name, Defaults.DevContainerEnvFile)
-                                .LoadEnvFile();
-                            var result = Cli.Wrap(preActivateHook)
-                                .SetEnvironmentVariables(templateEnv)
-                                .SetWorkingDirectory(Environment.CurrentDirectory)
-                                .SetStandardOutputCallback(l => Console.WriteLine(l))
-                                .SetStandardErrorCallback(l => Console.Error.WriteLine(l))
-                                .Execute();
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.Error.WriteLine($"Error running pre-activate hook! {ex.Message}\n{ex.StackTrace}");
-                            return false;
-                        }
-                    }
+                    var preActivateHook = Path.Combine(sourceTemplatePath, Defaults.PreActivateHook);
+
+                    // Precedence is templateEnv < preActivateHookEnv
+                    var preActivateHookEnv = Path.Combine(sourceTemplatePath, Defaults.PreActivateHookEnvFile).LoadEnvFile();
+                    var mergedPreActivateEnv = templateEnv
+                        .MergeWithUpdates(preActivateHookEnv);
+
+                    // Execute the hook
+                    Console.WriteLine($"Executing pre-activate hook for template {opts.Name} from {sourceTemplatePath}");
+                    if (!preActivateHook.ExecuteHook(mergedPreActivateEnv, environment: templateEnv))
+                        return false;
                 }
                 else
                     Console.WriteLine($"Hooks disabled for {opts.Name} from {sourceTemplatePath}");
 
                 var destPath = Path.Combine(sourceTemplatePath, "..");
-                var devContainerEnvFilename = Path.Combine(destPath, Defaults.DevContainerEnvFile);
 
+                // Are we running this command inside a container? If so, we need these vars
                 if (RunningInContainer() &&
                     ((Environment.GetEnvironmentVariable("HOST_USER_UID") == null) ||
                     (Environment.GetEnvironmentVariable("HOST_USER_GID") == null) ||
@@ -158,46 +185,34 @@ namespace devcontainer.core
                     { "HOST_USER_NAME", Environment.GetEnvironmentVariable("USER") }
                 };
 
-                // This time, merge custom vars with the environment
-                // Environment vars overwrite any custom vars
-                var mergedEnv = Environment
-                    .GetEnvironmentVariables()
-                    .ToReadOnlyDictionary()
+                // Precedence is templateEnv < customVars
+                var mergedEnv = templateEnv
                     .MergeWithUpdates(customVars);
 
-                // Substitute vars with environment values and activate as current devcontainer
-                sourceTemplatePath.CopyTo(destPath,
-                    onCopyFile: (src, dst) => mergedEnv.Process(src, dst, opts.DiscardChanges, passthroughUnknowns: true));
-                
-                Console.WriteLine($"Appending user-specific env settings...");
-                customVars.AppendToEnvFile(devContainerEnvFilename);
+                // Activate as current devcontainer and perform substitutions
+                sourceTemplatePath.CopyTo(destPath, overwrite: opts.Overwrite,
+                    onCopyFile: (source, dest) => File.WriteAllText(dest,
+                        Extensions.PerformTemplateSubstitutions(File.ReadAllText(source), mergedEnv, 
+                        passthroughUnknowns: true)));
+
+                // Write .env in destination path
+                var defaultEnvFilename = Path.Combine(destPath, Defaults.DefaultEnvFile);
+                Console.WriteLine($"Writing environment...");
+                mergedEnv.WriteEnvFile(defaultEnvFilename);
 
                 if (!opts.DisableHooks)
                 {
-                    // Is there a post-activate hook?
-                    var templatePath = Path.Combine(Environment.CurrentDirectory, Defaults.DevContainerFolder, opts.Name);
-                    var postActivateHook = Path.Combine(templatePath, Defaults.PostActivateHook);
-                    if (File.Exists(postActivateHook))
-                    {
-                        // Yes, run it
-                        Console.WriteLine($"Found post-activate hook for template {opts.Name} from {sourceTemplatePath}");
-                        try
-                        {
-                            var templateEnv = Path.Combine(Environment.CurrentDirectory, Defaults.DevContainerFolder, opts.Name, Defaults.DevContainerEnvFile)
-                                .LoadEnvFile();
-                            var result = Cli.Wrap(postActivateHook)
-                                .SetEnvironmentVariables(templateEnv)
-                                .SetWorkingDirectory(Environment.CurrentDirectory)
-                                .SetStandardOutputCallback(l => Console.WriteLine(l))
-                                .SetStandardErrorCallback(l => Console.Error.WriteLine(l))
-                                .Execute();
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.Error.WriteLine($"Error running post-activate hook! {ex.Message}\n{ex.StackTrace}");
-                            return false;
-                        }
-                    }
+                    var postActivateHook = Path.Combine(destPath, Defaults.PostActivateHook);
+
+                    // Precedence is templateEnv < preActivateHookEnv
+                    var postActivateHookEnv = Path.Combine(destPath, Defaults.PostActivateHookEnvFile).LoadEnvFile();
+                    var mergedPostActivateEnv = templateEnv
+                        .MergeWithUpdates(postActivateHookEnv);
+
+                    // Execute the hook
+                    Console.WriteLine($"Executing post-activate hook for template {opts.Name} from {destPath}");
+                    if (!postActivateHook.ExecuteHook(mergedPostActivateEnv, environment: templateEnv))
+                        return false;
                 }
 
                 return true;
@@ -207,6 +222,72 @@ namespace devcontainer.core
                 Console.Error.WriteLine($"Could not initialize devcontainer! {ex.Message}\n{ex.StackTrace}");
                 return false;
             }
+        }
+
+        public static bool Deactivate(IDeactivateOptions opts)
+        {
+            try
+            {
+                var activeTemplatePath = Path.Combine(Defaults.Context, Defaults.DevContainerFolder);
+                var activeDescPath = Path.Combine(activeTemplatePath, Defaults.DevcontainerJsonFile);
+                if (!File.Exists(activeDescPath))
+                {
+                    Console.Error.WriteLine("No active devcontainers, nothing to do!");
+                    return true;
+                }
+                var desc = JsonConvert.DeserializeObject<DevcontainerDesc>(File.ReadAllText(activeDescPath));
+                Console.WriteLine($"Deactivating {desc.name}");
+
+                var templateEnv = Path.Combine(activeTemplatePath, Defaults.DefaultEnvFile).LoadEnvFile();
+
+                if (!opts.DisableHooks)
+                {
+                    var preDeactivateHook = Path.Combine(activeTemplatePath, Defaults.PreDeactivateHook);
+                    var preDeactivateHookEnv = Path.Combine(activeTemplatePath, Defaults.PreDeactivateHookEnv).LoadEnvFile();
+
+                    // Precedence is templateEnv < preDeactivateHookEnv
+                    var mergedPredeactivateEnv = templateEnv.MergeWithUpdates(preDeactivateHookEnv);
+                    Console.WriteLine($"Executing pre-deactivate hook for template {desc.name} from {activeTemplatePath}");
+                    if (!preDeactivateHook.ExecuteHook(mergedPredeactivateEnv, environment: templateEnv))
+                        return false;
+
+                    // Delete all files in the active devcontainer folder
+                    foreach (var file in Directory.EnumerateFiles(activeTemplatePath))
+                        if ((Path.GetFileName(file) != Defaults.PostDeactivateHook) || (Path.GetFileName(file) != Defaults.PostDeactivateHookEnv))
+                        {
+                            Console.WriteLine($"Removing {file}");
+                            File.Delete(file);
+                        }
+
+                    var postDeactivateHook = Path.Combine(activeTemplatePath, Defaults.PostDeactivateHook);
+                    var postDeactivateHookEnvFilename = Path.Combine(activeTemplatePath, Defaults.PostDeactivateHookEnv);
+                    var postDeactivateHookEnv = postDeactivateHookEnvFilename.LoadEnvFile();
+
+                    // Precedence is templateEnv < preDeactivateHookEnv
+                    var mergedPostDeactivateEnv = templateEnv.MergeWithUpdates(postDeactivateHookEnv);
+                    Console.WriteLine($"Executing post-deactivate hook for template {desc.name} from {activeTemplatePath}");
+                    if (!postDeactivateHook.ExecuteHook(mergedPostDeactivateEnv, environment: templateEnv))
+                        return false;
+
+                    if (File.Exists(postDeactivateHookEnvFilename))
+                    {
+                        Console.WriteLine($"Removing {postDeactivateHookEnvFilename}");
+                        File.Delete(postDeactivateHookEnvFilename);
+                    }
+                    if (File.Exists(postDeactivateHook))
+                    {
+                        Console.WriteLine($"Removing {postDeactivateHook}");
+                        File.Delete(postDeactivateHook);
+                    }
+                }
+
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"Could not initialize devcontainer! {ex.Message}\n{ex.StackTrace}");
+                return false;
+            }
+            return true;
         }
 
         public static IEnumerable<KeyValuePair<string, DevcontainerDesc>> List(ILSOptions opts)
@@ -255,7 +336,7 @@ namespace devcontainer.core
                 Console.Error.WriteLine("No saved or current devcontainers!");
                 return false;
             }
-            var env = Path.Combine(devcontainerFolder, Defaults.DevContainerEnvFile).LoadEnvFile();
+            var env = Path.Combine(devcontainerFolder, Defaults.DefaultEnvFile).LoadEnvFile();
             var activeDescPath = Path.Combine(devcontainerFolder, Defaults.DevcontainerJsonFile);
             if (!File.Exists(activeDescPath))
             {
@@ -293,7 +374,7 @@ namespace devcontainer.core
                 Console.Error.WriteLine("No saved or current devcontainers!");
                 return false;
             }
-            var env = Path.Combine(devcontainerFolder, Defaults.DevContainerEnvFile).LoadEnvFile();
+            var env = Path.Combine(devcontainerFolder, Defaults.DefaultEnvFile).LoadEnvFile();
             var activeDescPath = Path.Combine(devcontainerFolder, Defaults.DevcontainerJsonFile);
             if (!File.Exists(activeDescPath))
             {
@@ -337,7 +418,7 @@ namespace devcontainer.core
                 Console.Error.WriteLine("No saved or current devcontainers!");
                 return false;
             }
-            var env = Path.Combine(devcontainerFolder, Defaults.DevContainerEnvFile).LoadEnvFile();
+            var env = Path.Combine(devcontainerFolder, Defaults.DefaultEnvFile).LoadEnvFile();
             var activeDescPath = Path.Combine(devcontainerFolder, Defaults.DevcontainerJsonFile);
             if (!File.Exists(activeDescPath))
             {
@@ -372,7 +453,7 @@ namespace devcontainer.core
                 Console.Error.WriteLine("No saved or current devcontainers!");
                 return false;
             }
-            var env = Path.Combine(devcontainerFolder, Defaults.DevContainerEnvFile).LoadEnvFile();
+            var env = Path.Combine(devcontainerFolder, Defaults.DefaultEnvFile).LoadEnvFile();
             var activeDescPath = Path.Combine(devcontainerFolder, Defaults.DevcontainerJsonFile);
             if (!File.Exists(activeDescPath))
             {
@@ -418,7 +499,7 @@ namespace devcontainer.core
                 Console.Error.WriteLine("No saved or current devcontainers!");
                 return false;
             }
-            var env = Path.Combine(devcontainerFolder, Defaults.DevContainerEnvFile).LoadEnvFile();
+            var env = Path.Combine(devcontainerFolder, Defaults.DefaultEnvFile).LoadEnvFile();
             var activeDescPath = Path.Combine(devcontainerFolder, Defaults.DevcontainerJsonFile);
             if (!File.Exists(activeDescPath))
             {

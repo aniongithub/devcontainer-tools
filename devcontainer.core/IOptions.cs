@@ -12,13 +12,19 @@ namespace devcontainer.core
         string DevDockerfile { get; }
         bool Overwrite { get; }
         string WorkspaceRoot { get; }
+        bool DisableHooks { get; }
     }
 
     public interface IActivateOptions
     {
         string Name { get; }
-        bool DiscardChanges { get; }
+        bool Overwrite { get; }
 
+        bool DisableHooks { get; }
+    }
+
+    public interface IDeactivateOptions
+    {
         bool DisableHooks { get; }
     }
 

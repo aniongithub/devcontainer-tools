@@ -43,6 +43,9 @@ namespace devcontainer
         [Option('w', "workspace-root", Default = Defaults.WorkspaceRoot )]
         public string WorkspaceRoot { get; set; }
 
+        [Option("disable-hooks", Default = false, HelpText = "Don't run any hooks when activating the template")]
+        public bool DisableHooks { get; set; }
+
         public InitOptions()
         {
             Id = Guid.NewGuid().ToString().Replace("-", string.Empty);
@@ -55,10 +58,17 @@ namespace devcontainer
         [Value(0, HelpText = "Name of the saved devcontainer to activate")]
         public string Name { get; set; }
 
-        [Option('d', "discard-changes", Default = false, HelpText = "Discard any changes to files in the root devcontainer folder during activation")]
-        public bool DiscardChanges { get; set; }
+        [Option('o', "overwrite", Default = false, HelpText = "Overwrite any files being used by the current devcontainer")]
+        public bool Overwrite { get; set; }
 
         [Option("disable-hooks", Default = false, HelpText = "Don't run any hooks when activating the template")]
+        public bool DisableHooks { get; set; }
+    }
+
+    [Verb("deactivate", HelpText = "Deactivate the active devcontainer")]
+    public sealed class DeactivateOptions: IDeactivateOptions
+    {
+        [Option("disable-hooks", Default = false, HelpText = "Don't run any hooks when deactivating the template")]
         public bool DisableHooks { get; set; }
     }
 

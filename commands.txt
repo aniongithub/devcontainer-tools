@@ -4,3 +4,35 @@ Exec: docker-compose exec -w <workdir> <servicename> <command>
 Status: docker ps -q --no-trunc | grep $(docker-compose ps -q <servicename>)
 Reverse SSHFS for mounting a local filesystem via FUSE: https://gist.github.com/allenyllee/ddf9be045810572cd809ae3587a23658
 Passwordless SSH and docker-machine setup: https://gist.github.com/aniongithub/182a0e2eba06014bfb6a6addc90fbe12
+Convert output of docker-machine env to be JSON-compatible: docker-machine env <machinename> | sed -e 's/\<export\>\s//g' | sed '/^#/ d' | sed -r 's/[=]+/":/g' | sed 's/^/"/'
+Add stuff to json file using jq: cat devcontainer.json | jq '. + { "remoteEnv": { $JSON_COMPAT_VALUES } }'
+
+# Example post-activate hook that creates+merges+writes a .vscode/settings.json using jq
+# Use this as the template for any templates that need to change docker env
+
+#! /bin/bash
+
+# This hook runs AFTER the devcontainer files have been copied and user-specific
+# env settings appended.
+
+echo "Post activate hook for template: $DEVCONTAINER_NAME running in $PWD"
+
+# Create an EC2 instance
+MACHINE_NAME="mark1"
+
+SETTINGS=".vscode/settings.json"
+
+# Create the settings file if it doesn't exist
+[ -d ".vscode" ] || mkdir -p .vscode
+[ -f $SETTINGS ] || echo "{}" > $SETTINGS
+
+# Set the docker env for this hook
+eval $(docker-machine env $MACHINE_NAME)
+
+# Use jq to generate out settings file
+echo "$( jq -M \
+    --arg dockerHost "$DOCKER_HOST" \
+    --arg dockerCertPath "$DOCKER_CERT_PATH" \
+    --arg dockerMachineName "$DOCKER_MACHINE_NAME" \
+    --arg dockerTlsVerify "$DOCKER_TLS_VERIFY" \
+    '.["docker.host"]=$dockerHost|.["docker.certPath"]=$dockerCertPath|.["docker.machineName"]=$dockerMachineName|.["docker.tlsVerify"]=$dockerTlsVerify' $SETTINGS )" > $SETTINGS
