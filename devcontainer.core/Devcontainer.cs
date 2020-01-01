@@ -124,9 +124,6 @@ namespace devcontainer.core
             }
         }
 
-        // Regex to find variables for entry/replacement
-        private static readonly Regex RequiredVariables = new Regex(@"\$\{(?<variable>\w+)(\?(?<prompt>[^-:=}]+)})", RegexOptions.Compiled | RegexOptions.ExplicitCapture);
-
         public static bool Activate(IActivateOptions opts)
         {
             try

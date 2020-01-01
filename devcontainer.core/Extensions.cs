@@ -240,7 +240,7 @@ namespace devcontainer
             return false;
         }
 
-        private static readonly Regex RequiredVariables = new Regex(@"\$\{(?<variable>\w+)(\?(?<prompt>[^-:=}]+)})", RegexOptions.Compiled | RegexOptions.ExplicitCapture);
+        private static readonly Regex RequiredVariables = new Regex(@"\$\{(?<variable>\w+):?(\?(?<prompt>""[^""\\]*(?:\\.[^""\\]*)*""))", RegexOptions.Compiled | RegexOptions.ExplicitCapture);
 
         // TODO: Add timeout and cancellation support for hook execution
         public static bool ExecuteHook(this string hookFilename, IDictionary<string, string> hookEnv, string workingDirectory = null, IDictionary<string, string> environment = null, bool forceReEntry = false)
