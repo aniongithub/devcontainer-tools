@@ -247,35 +247,34 @@ namespace devcontainer.core
                     Console.WriteLine($"Executing pre-deactivate hook for template {desc.name} from {activeTemplatePath}");
                     if (!preDeactivateHook.ExecuteHook(mergedPredeactivateEnv, environment: templateEnv))
                         return false;
-
-                    // Delete all files in the active devcontainer folder
-                    foreach (var file in Directory.EnumerateFiles(activeTemplatePath))
-                        if ((Path.GetFileName(file) != Defaults.PostDeactivateHook) || (Path.GetFileName(file) != Defaults.PostDeactivateHookEnv))
-                        {
-                            Console.WriteLine($"Removing {file}");
-                            File.Delete(file);
-                        }
-
-                    var postDeactivateHook = Path.Combine(activeTemplatePath, Defaults.PostDeactivateHook);
-                    var postDeactivateHookEnvFilename = Path.Combine(activeTemplatePath, Defaults.PostDeactivateHookEnv);
+                }
+                // Delete all files in the active devcontainer folder
+                foreach (var file in Directory.EnumerateFiles(activeTemplatePath))
+                    if ((Path.GetFileName(file) != Defaults.PostDeactivateHook) || (Path.GetFileName(file) != Defaults.PostDeactivateHookEnv))
+                    {
+                        Console.WriteLine($"Removing {file}");
+                        File.Delete(file);
+                    }
+                var postDeactivateHook = Path.Combine(activeTemplatePath, Defaults.PostDeactivateHook);
+                var postDeactivateHookEnvFilename = Path.Combine(activeTemplatePath, Defaults.PostDeactivateHookEnv);
+                if (!opts.DisableHooks)
+                {
                     var postDeactivateHookEnv = postDeactivateHookEnvFilename.LoadEnvFile();
-
                     // Precedence is templateEnv < preDeactivateHookEnv
                     var mergedPostDeactivateEnv = templateEnv.MergeWithUpdates(postDeactivateHookEnv);
                     Console.WriteLine($"Executing post-deactivate hook for template {desc.name} from {activeTemplatePath}");
                     if (!postDeactivateHook.ExecuteHook(mergedPostDeactivateEnv, environment: templateEnv))
                         return false;
-
-                    if (File.Exists(postDeactivateHookEnvFilename))
-                    {
-                        Console.WriteLine($"Removing {postDeactivateHookEnvFilename}");
-                        File.Delete(postDeactivateHookEnvFilename);
-                    }
-                    if (File.Exists(postDeactivateHook))
-                    {
-                        Console.WriteLine($"Removing {postDeactivateHook}");
-                        File.Delete(postDeactivateHook);
-                    }
+                }
+                if (File.Exists(postDeactivateHookEnvFilename))
+                {
+                    Console.WriteLine($"Removing {postDeactivateHookEnvFilename}");
+                    File.Delete(postDeactivateHookEnvFilename);
+                }
+                if (File.Exists(postDeactivateHook))
+                {
+                    Console.WriteLine($"Removing {postDeactivateHook}");
+                    File.Delete(postDeactivateHook);
                 }
 
             }
