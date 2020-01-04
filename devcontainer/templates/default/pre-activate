@@ -3,4 +3,4 @@
 # This hook runs BEFORE the devcontainer files are copied and user-specific
 # env settings are appended. Note that non-user specific env. is available here
 
-echo "Pre-activate hook for template: $DEVCONTAINER_NAME running in $PWD"
+echo "pre-activate hook for template: $DEVCONTAINER_NAME running in $PWD"

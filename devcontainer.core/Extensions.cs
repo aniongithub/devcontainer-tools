@@ -1,3 +1,4 @@
+using System.Collections.Specialized;
 using System.Text;
 using System;
 using System.IO;
@@ -53,6 +54,27 @@ namespace devcontainer
 
         public static bool CreateOrMerge(this string envFilename, IDictionary<string, string> env)
         {
+            try
+            {
+                if (!File.Exists(envFilename))
+                    env.WriteEnvFile(envFilename);
+                else
+                    envFilename
+                        .LoadEnvFile()
+                        .MergeWithUpdates(env)
+                        .WriteEnvFile(envFilename);
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"Exception: {ex.Message}\n{ex.StackTrace}");
+                return false;
+            }
+            return true;
+        }
+
+        public static bool CreateOrMerge(this string envFilename, string key, string value)
+        {
+            var env = new Dictionary<string, string> { { key, value } };
             try
             {
                 if (!File.Exists(envFilename))
@@ -303,6 +325,12 @@ namespace devcontainer
                 return false;
             }
             return true;
+        }
+
+        public static void CopyTo(this IDictionary<string, string> env, StringDictionary outEnv)
+        {
+            foreach (var kvp in env)
+                outEnv.Add(kvp.Key, kvp.Value);
         }
     }
 }

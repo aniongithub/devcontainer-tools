@@ -1,0 +1,81 @@
+#! /bin/bash
+
+echo "pre-activate hook for template: $DEVCONTAINER_NAME running in $PWD"
+
+# https://www.davidpashley.com/articles/writing-robust-shell-scripts
+# Fail on any errors
+set -e
+
+# Fail on unset variables
+set -u
+
+# Check all our pre-requisites here, fail if not available
+command -v aws || { echo "Could not find the AWS CLI. More info: https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html"; exit 1; }
+command -v docker || { echo "Could not find Docker! More info: https://docs.docker.com/install/"; exit 1; }
+command -v docker-machine || { echo "Could not find docker-machine. More info: https://docs.docker.com/v17.09/machine/install-machine/"; exit 1; }
+command -v jq || { echo "Could not find jq. More info: https://github.com/stedolan/jq/wiki/Installation"; exit 1; }
+command -v dpipe || { echo "Could not find dpipe in package vde2. More info: https://packages.debian.org/jessie/vde2"; exit 1; }
+
+# TODO: Continue here
+# 1. Create the instance - Done
+# 2. Create/Update The settings file
+# 2. Append the env needed for the reverse-sshfs mount to .devcontainer/.env
+
+# Check to see if the instance exists
+AWS_INSTANCE_NAME=${AWS_INSTANCE_NAME?"Enter the name of the instance to create (ex: aws-sandbox)"}
+
+# Allow errors temporarily for our check
+set +e
+docker-machine ls -q | grep "^$AWS_INSTANCE_NAME\$"
+if [ $? -ne 0 ]; then
+    # Try to create the instance in the pre-activate hook because there's
+    # no point activating the template if the instance hasn't been created
+    docker-machine create --driver amazonec2 \
+                        --amazonec2-region ${AWS_REGION?"Enter the region to create the instance in (ex: us-west-2)"} \
+                        --amazonec2-instance-type ${AWS_INSTANCE_TYPE?"Enter the instance type (ex: t2.micro)"} \
+                        --amazonec2-ami ${AWS_AMI_ID?"Enter the AMI id to use for the instance (ex: ami-db710fa3)"} \
+                        --amazonec2-ssh-user ${AWS_SSH_USER?"Enter the username to use for docker-machine configuration (ex: ubuntu)"} \
+                        $AWS_INSTANCE_NAME
+else
+    echo "$AWS_INSTANCE_NAME exists, re-using"
+fi
+set -e
+
+# Either way, we have an instance now
+echo $AWS_INSTANCE_NAME > "$PWD/.devcontainer/docker-machine.name"
+
+# Ensure sshfs is installed on the remote machine
+docker-machine ssh $AWS_INSTANCE_NAME \
+    "sudo apt-get update;sudo apt-get install -y sshfs;mkdir -p /tmp/$DEVCONTAINER_NAME-$DEVCONTAINER_ID"
+
+# Ensure user_allow_other is active
+# TODO: Find the right way to uncomment this line, don't just add it
+docker-machine ssh $AWS_INSTANCE_NAME \
+    "echo 'user_allow_other' | sudo tee -a /etc/fuse.conf"
+
+# Note, needs vde2 installed
+MOUNT_COMMAND="dpipe /usr/lib/openssh/sftp-server = docker-machine ssh $AWS_INSTANCE_NAME sshfs :$PWD /tmp/$DEVCONTAINER_NAME-$DEVCONTAINER_ID -o slave -o allow_other"
+# nohup the mount command and background it
+nohup $MOUNT_COMMAND > "$PWD/.devcontainer/mount.log" 2>&1 &
+echo $! > "$PWD/.devcontainer/rsshfs.pid"
+
+SETTINGS=".vscode/settings.json"
+
+# Create the settings file if it doesn't exist
+[ -d ".vscode" ] || mkdir -p .vscode
+[ -f $SETTINGS ] || echo "{}" > $SETTINGS
+
+# Set the docker env for this hook
+eval $(docker-machine env $AWS_INSTANCE_NAME)
+
+# Use jq to generate our VS Code settings file
+echo "$( jq -M \
+    --arg dockerHost "$DOCKER_HOST" \
+    --arg dockerCertPath "$DOCKER_CERT_PATH" \
+    --arg dockerMachineName "$DOCKER_MACHINE_NAME" \
+    --arg dockerTlsVerify "$DOCKER_TLS_VERIFY" \
+    '.["docker.host"]=$dockerHost|.["docker.certPath"]=$dockerCertPath|.["docker.machineName"]=$dockerMachineName|.["docker.tlsVerify"]=$dockerTlsVerify' $SETTINGS )" > $SETTINGS
+
+# Note about variable placeholders
+# If/when this script completes successfully, the SAVED devcontainer will contain the defaults the
+# user entered this (mostly) ensures only valid values become defaults for subsequent activations

@@ -4,9 +4,4 @@
 # env settings appended. If you have any user-specific initialization to perform this
 # is the place for it
 
-# This is also the hook you want to use to create resources required for this template
-# to work - creating instances, attaching volumes, etc.
-
-# !! Remember to destroy those resources in the appropriate *-deactivate hooks !!
-
 echo "post-activate hook for template: $DEVCONTAINER_NAME running in $PWD"

@@ -1,6 +1,4 @@
-using System.Xml.Linq;
-using System.Linq;
-using System.Security.Cryptography.X509Certificates;
+using System.Diagnostics;
 using CliWrap;
 
 using System;
@@ -59,14 +57,16 @@ namespace devcontainer.core
                     var preInitializeHook = Path.Combine(sourceTemplatePath, Defaults.PreInitializeHook);
 
                     // Precedence is templateEnv < preInitializeHookEnv
-                    var preInitializeHookEnv = Path.Combine(sourceTemplatePath, Defaults.PreInitializeHookEnvFile).LoadEnvFile();
-                    var mergedPreInitializeEnv = templateEnv
-                        .MergeWithUpdates(preInitializeHookEnv);
+                    var preInitializeHookEnvFile = Path.Combine(sourceTemplatePath, Defaults.PreInitializeHookEnvFile);
+                    var preInitializeHookEnv = preInitializeHookEnvFile.LoadEnvFile();
 
                     // Execute the hook
                     Console.WriteLine($"Executing pre-initialize hook for template {opts.Name} from {sourceTemplatePath}");
-                    if (!preInitializeHook.ExecuteHook(mergedPreInitializeEnv, environment: templateEnv))
+                    if (!preInitializeHook.ExecuteHook(preInitializeHookEnv, environment: templateEnv))
                         return false;
+                    
+                    // Save the input values
+                    preInitializeHookEnv.WriteEnvFile(preInitializeHookEnvFile);
                 }
                 else
                     Console.WriteLine($"Hooks disabled for {opts.Name} from {sourceTemplatePath}");
@@ -105,14 +105,15 @@ namespace devcontainer.core
                     var postInitializeHook = Path.Combine(destTemplatePath, Defaults.PostInitializeHook);
 
                     // Precedence is templateEnv < postInitializeHookEnv
-                    var postInitializeHookEnv = Path.Combine(destTemplatePath, Defaults.PostInitializeHookEnvFile).LoadEnvFile();
-                    var mergedPostInitializeEnv = templateEnv
-                        .MergeWithUpdates(postInitializeHookEnv);
+                    var postInitializeHookEnvFile = Path.Combine(destTemplatePath, Defaults.PostInitializeHookEnvFile);
+                    var postInitializeHookEnv = postInitializeHookEnvFile.LoadEnvFile();
 
                     // Execute the hook
                     Console.WriteLine($"Executing post-initialize hook for template {opts.Name} from {destTemplatePath}");
-                    if (!postInitializeHook.ExecuteHook(mergedPostInitializeEnv, environment: templateEnv))
+                    if (!postInitializeHook.ExecuteHook(postInitializeHookEnv, environment: templateEnv))
                         return false;
+
+                    postInitializeHookEnv.WriteEnvFile(postInitializeHookEnvFile);
                 }
 
                 return true;
@@ -144,14 +145,15 @@ namespace devcontainer.core
                     var preActivateHook = Path.Combine(sourceTemplatePath, Defaults.PreActivateHook);
 
                     // Precedence is templateEnv < preActivateHookEnv
-                    var preActivateHookEnv = Path.Combine(sourceTemplatePath, Defaults.PreActivateHookEnvFile).LoadEnvFile();
-                    var mergedPreActivateEnv = templateEnv
-                        .MergeWithUpdates(preActivateHookEnv);
+                    var preActivateHookEnvFile = Path.Combine(sourceTemplatePath, Defaults.PreActivateHookEnvFile);
+                    var preActivateHookEnv = preActivateHookEnvFile.LoadEnvFile();
 
                     // Execute the hook
                     Console.WriteLine($"Executing pre-activate hook for template {opts.Name} from {sourceTemplatePath}");
-                    if (!preActivateHook.ExecuteHook(mergedPreActivateEnv, environment: templateEnv))
+                    if (!preActivateHook.ExecuteHook(preActivateHookEnv, environment: templateEnv))
                         return false;
+
+                    preActivateHookEnv.WriteEnvFile(preActivateHookEnvFile);
                 }
                 else
                     Console.WriteLine($"Hooks disabled for {opts.Name} from {sourceTemplatePath}");
@@ -194,22 +196,23 @@ namespace devcontainer.core
 
                 // Write .env in destination path
                 var defaultEnvFilename = Path.Combine(destPath, Defaults.DefaultEnvFile);
-                Console.WriteLine($"Writing environment...");
-                mergedEnv.WriteEnvFile(defaultEnvFilename);
+                Console.WriteLine($"Updating environment...");
+                defaultEnvFilename.CreateOrMerge(mergedEnv);
 
                 if (!opts.DisableHooks)
                 {
                     var postActivateHook = Path.Combine(destPath, Defaults.PostActivateHook);
 
                     // Precedence is templateEnv < preActivateHookEnv
-                    var postActivateHookEnv = Path.Combine(destPath, Defaults.PostActivateHookEnvFile).LoadEnvFile();
-                    var mergedPostActivateEnv = templateEnv
-                        .MergeWithUpdates(postActivateHookEnv);
+                    var postActivateHookEnvFile = Path.Combine(destPath, Defaults.PostActivateHookEnvFile);
+                    var postActivateHookEnv = postActivateHookEnvFile.LoadEnvFile();
 
                     // Execute the hook
                     Console.WriteLine($"Executing post-activate hook for template {opts.Name} from {destPath}");
-                    if (!postActivateHook.ExecuteHook(mergedPostActivateEnv, environment: templateEnv))
+                    if (!postActivateHook.ExecuteHook(postActivateHookEnv, environment: templateEnv))
                         return false;
+
+                    postActivateHookEnv.WriteEnvFile(postActivateHookEnvFile);
                 }
 
                 return true;
@@ -248,6 +251,7 @@ namespace devcontainer.core
                     if (!preDeactivateHook.ExecuteHook(mergedPredeactivateEnv, environment: templateEnv))
                         return false;
                 }
+
                 // Delete all files in the active devcontainer folder
                 foreach (var file in Directory.EnumerateFiles(activeTemplatePath))
                     if ((Path.GetFileName(file) != Defaults.PostDeactivateHook) || (Path.GetFileName(file) != Defaults.PostDeactivateHookEnv))
@@ -263,7 +267,7 @@ namespace devcontainer.core
                     // Precedence is templateEnv < preDeactivateHookEnv
                     var mergedPostDeactivateEnv = templateEnv.MergeWithUpdates(postDeactivateHookEnv);
                     Console.WriteLine($"Executing post-deactivate hook for template {desc.name} from {activeTemplatePath}");
-                    if (!postDeactivateHook.ExecuteHook(mergedPostDeactivateEnv, environment: templateEnv))
+                    if (!postDeactivateHook.ExecuteHook(mergedPostDeactivateEnv, workingDirectory: "..", environment: templateEnv))
                         return false;
                 }
                 if (File.Exists(postDeactivateHookEnvFilename))
