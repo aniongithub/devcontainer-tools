@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Version>1.3</Version>
+    <Version>1.3.1</Version>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.0</TargetFramework>
     <PackAsTool>true</PackAsTool>
@@ -23,12 +23,17 @@
     <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
   </ItemGroup>
 
-<ItemGroup>
-  <None Update="templates/**/*" CopyToOutputDirectory="PreserveNewest" />
-</ItemGroup>
+  <ItemGroup>
+    <None Update="templates/**/*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 
-<ItemGroup>
-  <ProjectReference Include="..\devcontainer.core\devcontainer.core.csproj" />
-</ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\devcontainer.core\devcontainer.core.csproj" />
+  </ItemGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+      <Exec Command="find $(OutDir) -name pre-* -type f -exec chmod +x {} \;" />
+      <Exec Command="find $(OutDir) -name post-* -type f -exec chmod +x {} \;" />
+  </Target>
 
 </Project>
