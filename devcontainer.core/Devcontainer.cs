@@ -1,3 +1,4 @@
+using System.Data;
 using System.Diagnostics;
 using CliWrap;
 
@@ -54,19 +55,22 @@ namespace devcontainer.core
                 if (!opts.DisableHooks)
                 {
                     // Is there a pre-initialize hook?
-                    var preInitializeHook = Path.Combine(sourceTemplatePath, Defaults.PreInitializeHook);
+                    var preInitializeHookSourcePath = Path.Combine(sourceTemplatePath, Defaults.PreInitializeHook);
+                    var preInitializeHookDestPath = Path.Combine(Path.GetTempPath(), Defaults.PreInitializeHook);
+                    if (File.Exists(preInitializeHookSourcePath))
+                    {
+                        File.Copy(preInitializeHookSourcePath, preInitializeHookDestPath, true);
+                        var preInitializeHook = preInitializeHookDestPath;
 
-                    // Precedence is templateEnv < preInitializeHookEnv
-                    var preInitializeHookEnvFile = Path.Combine(sourceTemplatePath, Defaults.PreInitializeHookEnvFile);
-                    var preInitializeHookEnv = preInitializeHookEnvFile.LoadEnvFile();
+                        // Precedence is templateEnv < preInitializeHookEnv
+                        var preInitializeHookEnvFile = Path.Combine(sourceTemplatePath, Defaults.PreInitializeHookEnvFile);
+                        var preInitializeHookEnv = preInitializeHookEnvFile.LoadEnvFile();
 
-                    // Execute the hook
-                    Console.WriteLine($"Executing pre-initialize hook for template {opts.Name} from {sourceTemplatePath}");
-                    if (!preInitializeHook.ExecuteHook(preInitializeHookEnv, environment: templateEnv))
-                        return false;
-                    
-                    // Save the input values
-                    preInitializeHookEnv.WriteEnvFile(preInitializeHookEnvFile);
+                        // Execute the hook
+                        Console.WriteLine($"Executing pre-initialize hook for template {opts.Name} from {sourceTemplatePath}");
+                        if (!preInitializeHook.ExecuteHook(preInitializeHookEnv, environment: templateEnv))
+                            return false;
+                    }
                 }
                 else
                     Console.WriteLine($"Hooks disabled for {opts.Name} from {sourceTemplatePath}");
