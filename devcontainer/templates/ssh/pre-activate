@@ -10,42 +10,56 @@ set -e
 set -u
 
 # Check all our pre-requisites here, fail if not available
-command -v aws || { echo "Could not find the AWS CLI. More info: https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html"; exit 1; }
+# Check all our pre-requisites here, fail if not available
+command -v ssh-keygen || { echo "Could not find ssh-keygen. Install it with apt-get install openssh-client"; exit 1; }
+command -v ssh-copy-id || { echo "Could not find ssh-copy-id. Install it with apt-get install openssh-client"; exit 1; }
 command -v docker || { echo "Could not find Docker! More info: https://docs.docker.com/install/"; exit 1; }
 command -v docker-machine || { echo "Could not find docker-machine. More info: https://docs.docker.com/v17.09/machine/install-machine/"; exit 1; }
 command -v jq || { echo "Could not find jq. More info: https://github.com/stedolan/jq/wiki/Installation"; exit 1; }
 command -v dpipe || { echo "Could not find dpipe in package vde2. More info: https://packages.debian.org/jessie/vde2"; exit 1; }
 
-# TODO: Continue here
-# 1. Create the instance - Done
-# 2. Create/Update The settings file
-# 2. Append the env needed for the reverse-sshfs mount to .devcontainer/.env
-
-# Check to see if the instance exists
-AWS_INSTANCE_NAME=${AWS_INSTANCE_NAME?"Enter the name of the instance to create (ex: aws-sandbox)"}
+REMOTE_MACHINE_NAME=${REMOTE_MACHINE_NAME?"Enter the hostname of the remote machine to create/use (ex: raspberrypi)"}
 
 # Allow errors temporarily for our check
 set +e
-docker-machine ls -q | grep "^$AWS_INSTANCE_NAME\$"
-if [ $? -ne 0 ]; then
-    # Try to create the instance in the pre-activate hook because there's
-    # no point activating the template if the instance hasn't been created
-    docker-machine create --driver amazonec2 \
-                        --amazonec2-region ${AWS_REGION?"Enter the region to create the instance in (ex: us-west-2)"} \
-                        --amazonec2-instance-type ${AWS_INSTANCE_TYPE?"Enter the instance type (ex: t2.micro)"} \
-                        --amazonec2-ami ${AWS_AMI_ID?"Enter the AMI id to use for the instance (ex: ami-db710fa3)"} \
-                        --amazonec2-ssh-user ${AWS_SSH_USER?"Enter the username to use for docker-machine configuration (ex: ubuntu)"} \
-                        $AWS_INSTANCE_NAME
-else
-    echo "$AWS_INSTANCE_NAME exists, re-using"
-fi
+docker-machine ls -q | grep "^$REMOTE_MACHINE_NAME\$"
+err=$?
 set -e
+if [ $err -eq 0 ]
+then
+    echo "Docker machine $REMOTE_MACHINE_NAME exists, re-using"
+else
+    # Allow errors temporarily for our check
+    set +e
+    ping -c4 $REMOTE_MACHINE_NAME
+    err=$?
+    set -e
+    if [ $err -ne 0 ]
+    then
+        echo -n "Could not ping $REMOTE_MACHINE_NAME, please enter the IP address of the machine to connect to >"
+        read REMOTE_MACHINE_IP
+    else
+        REMOTE_MACHINE_IP=$(dig +short $REMOTE_MACHINE_NAME)
+    fi
 
-# Either way, we have an instance now
-echo $AWS_INSTANCE_NAME > "$PWD/.devcontainer/docker-machine.name"
+    # Create the ssh-key we're going to copy over and have docker-machine use
+    REMOTE_HOST_KEY="/tmp/$REMOTE_MACHINE_NAME.id_rsa"
+    echo -e 'y\n' | ssh-keygen -t rsa -b 4096 -f $REMOTE_HOST_KEY -q -N ""
+    ssh-copy-id -f -i /tmp/$REMOTE_MACHINE_NAME.id_rsa ${REMOTE_USERNAME?"Enter the username to use on the remote machine (ex: pi)"}@$REMOTE_MACHINE_IP
+    docker-machine create \
+        --driver generic \
+        --generic-ip-address="$REMOTE_MACHINE_IP" \
+        --generic-ssh-user="$REMOTE_USERNAME" \
+        --generic-ssh-key $REMOTE_HOST_KEY \
+        $REMOTE_MACHINE_NAME
+fi
+
+# Either way, we have a docker-machine now
+echo $REMOTE_MACHINE_NAME > "$PWD/.devcontainer/docker-machine.name"
 
 # Ensure sshfs is installed on the remote machine
-docker-machine ssh $AWS_INSTANCE_NAME \
+# https://stackoverflow.com/a/27355109/802203
+docker-machine ssh $REMOTE_MACHINE_NAME \
     "sudo apt-get update;sudo apt-get install -y sshfs;mkdir -p /tmp/$DEVCONTAINER_NAME-$DEVCONTAINER_ID"
 
 # Ensure user_allow_other is active
@@ -53,7 +67,7 @@ docker-machine ssh $AWS_INSTANCE_NAME \
 docker-machine ssh $REMOTE_MACHINE_NAME "sudo sed -i '/user_allow_other/s/^#//g' /etc/fuse.conf"
 
 # Note, needs vde2 installed
-MOUNT_COMMAND="dpipe /usr/lib/openssh/sftp-server = docker-machine ssh $AWS_INSTANCE_NAME sshfs :$PWD /tmp/$DEVCONTAINER_NAME-$DEVCONTAINER_ID -o slave -o allow_other"
+MOUNT_COMMAND="dpipe /usr/lib/openssh/sftp-server = docker-machine ssh $REMOTE_MACHINE_NAME sshfs :$PWD /tmp/$DEVCONTAINER_NAME-$DEVCONTAINER_ID -o slave -o allow_other"
 # nohup the mount command and background it
 nohup $MOUNT_COMMAND > "$PWD/.devcontainer/mount.log" 2>&1 &
 echo $! > "$PWD/.devcontainer/rsshfs.pid"
@@ -65,13 +79,13 @@ SETTINGS=".vscode/settings.json"
 [ -f $SETTINGS ] || echo "{}" > $SETTINGS
 
 # Set the docker env for this hook
-eval $(docker-machine env $AWS_INSTANCE_NAME)
+eval $(docker-machine env $REMOTE_MACHINE_NAME)
 
 # Use jq to generate our VS Code settings file
 echo "$( jq -M \
     --arg dockerHost "$DOCKER_HOST" \
     --arg dockerCertPath "$DOCKER_CERT_PATH" \
-    --arg dockerMachineName "$DOCKER_MACHINE_NAME" \
+    --arg dockerMachineName "$REMOTE_MACHINE_NAME" \
     --arg dockerTlsVerify "$DOCKER_TLS_VERIFY" \
     '.["docker.host"]=$dockerHost|.["docker.certPath"]=$dockerCertPath|.["docker.machineName"]=$dockerMachineName|.["docker.tlsVerify"]=$dockerTlsVerify' $SETTINGS )" > $SETTINGS
 

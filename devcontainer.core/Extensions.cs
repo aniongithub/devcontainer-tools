@@ -102,7 +102,7 @@ namespace devcontainer
             return result;
         }
 
-        public static void Process(this IDictionary<string, string> env, string sourceFilename, string destFilename, bool overwrite = false, bool passthroughUnknowns = false)
+        public static void ProcessTemplateArguments(this IDictionary<string, string> env, string sourceFilename, string destFilename, bool overwrite = false, bool passthroughUnknowns = false)
         {
             var text = File.ReadAllText(sourceFilename)
                 .PerformTemplateSubstitutions(env, passthroughUnknowns);
@@ -302,15 +302,29 @@ namespace devcontainer
                             }
                         }
 
+                        var psInfo = new ProcessStartInfo
+                        {
+                            FileName = hookFilename,
+                            WorkingDirectory = Environment.CurrentDirectory,
+                            UseShellExecute = false
+                        };
+                        environment.CopyTo(psInfo.EnvironmentVariables);
+                        hookEnv.CopyTo(psInfo.EnvironmentVariables);
+
+                        var process = Process.Start(psInfo);
+                        process.WaitForExit();
+                        if (process.ExitCode != 0)
+                            throw new Exception($"Hook {hookFilename} exited with a non-zero exit code of {process.ExitCode}");
+
                         // Now when we execute the hook, it will have the correct environment
                         // pre-defined or otherwise
-                        var result = Cli.Wrap(hookFilename)
-                            .SetEnvironmentVariables(environment)
-                            .SetEnvironmentVariables(hookEnv) // Hook env. variables supersede passed-in env
-                            .SetWorkingDirectory(Environment.CurrentDirectory)
-                            .SetStandardOutputCallback(l => Console.WriteLine(l))
-                            .SetStandardErrorCallback(l => Console.Error.WriteLine(l))
-                            .Execute();
+                        // var result = Cli.Wrap(hookFilename)
+                        //     .SetEnvironmentVariables(environment)
+                        //     .SetEnvironmentVariables(hookEnv) // Hook env. variables supersede passed-in env
+                        //     .SetWorkingDirectory(Environment.CurrentDirectory)
+                        //     .SetStandardOutputCallback(l => Console.WriteLine(l))
+                        //     .SetStandardErrorCallback(l => Console.Error.WriteLine(l))
+                        //     .Execute();
                     }
                     catch (Exception ex)
                     {
@@ -330,7 +344,7 @@ namespace devcontainer
         public static void CopyTo(this IDictionary<string, string> env, StringDictionary outEnv)
         {
             foreach (var kvp in env)
-                outEnv.Add(kvp.Key, kvp.Value);
+                outEnv[kvp.Key] = kvp.Value;
         }
     }
 }
