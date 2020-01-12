@@ -39,7 +39,9 @@ else
         echo -n "Could not ping $REMOTE_MACHINE_NAME, please enter the IP address of the machine to connect to >"
         read REMOTE_MACHINE_IP
     else
-        REMOTE_MACHINE_IP=$(dig +short $REMOTE_MACHINE_NAME)
+        # Use the first IP address that's returned from getent. We're also specifically requesting an IPv4 address
+        # https://unix.stackexchange.com/a/20793/358706
+        REMOTE_MACHINE_IP=$(getent ahostsv4 $REMOTE_MACHINE_NAME | awk '{ print $1; exit }')
     fi
 
     # Create the ssh-key we're going to copy over and have docker-machine use
