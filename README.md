@@ -6,7 +6,7 @@
 
 Here's an example that shows how to use the [AWS template](https://github.com/aniongithub/devcontainer-tools/tree/master/devcontainer/templates/aws) to develop on an AWS instance with you local source code mounted on the remote machine and pass-through user permissions (no more `chown`ing files!)
 
-![Devcontainer AWS example](/home/ani/Projects/devcontainer-tools/images/devcontainer_aws.gif)
+![Devcontainer AWS example](images/devcontainer_aws.gif)
 
 Here's another example that uses the [SSH template](https://github.com/aniongithub/devcontainer-tools/tree/master/devcontainer/templates/ssh) in a local folder for live development on a Raspberry Pi
 
