@@ -2,31 +2,16 @@
 
 [![Build status](https://ci.appveyor.com/api/projects/status/uwnfvv2g62uvxb7j/branch/master?svg=true)](https://ci.appveyor.com/project/aniongithub/devcontainer-tools/branch/master)
 
-`devcontainer` is a way to combine application sources and a Docker container which packages build tools/dependencies to produce a binary (or a full-featured development environment) in a snap - all without local installation shenanigans or ever mucking around with permissions/volumes. Also, because `devcontainer` uses the same file formats and structures used by the [Visual Studio Remote Containers](https://code.visualstudio.com/docs/remote/containers) extensions, this tool also acts as a handy way to manage and use multiple devcontainer configurations. If Visual Studio Code is installed, it can instantly act as an IDE with full intellisense and debugging support right out of the box.
+`devcontainer` is a .NET Core [global tool](https://docs.microsoft.com/en-us/dotnet/core/tools/global-tools) that creates and manages Visual Studio Code compatible [Remote Containers](https://code.visualstudio.com/docs/remote/containers) for development.
 
-All you need is:
+Here's an example that shows how to use the [AWS template](https://github.com/aniongithub/devcontainer-tools/tree/master/devcontainer/templates/aws) to develop on an AWS instance with you local source code mounted on the remote machine and pass-through user permissions (no more `chown`ing files!)
 
-### Installed on the Host
-* [Docker](https://docs.docker.com/v17.09/engine/installation/)
-* [docker-compose](https://docs.docker.com/compose/install/)
-* [docker-machine](https://docs.docker.com/machine/) *(optional, only required for cloud devcontainers)*
-* [.NET Core 3.0+](https://dotnet.microsoft.com/download)
-* [Visual Studio code](https://code.visualstudio.com/) with Remote Containers extension *(optional)*
+![Devcontainer AWS example](/home/ani/Projects/devcontainer-tools/images/devcontainer_aws.gif)
 
-### Per project
-* A Dockerfile that sets up the environment to build your application (this file will not be modified, but used)
-* Any source files or assets you may need
+Here's another example that uses the [SSH template](https://github.com/aniongithub/devcontainer-tools/tree/master/devcontainer/templates/ssh) in a local folder for live development on a Raspberry Pi
 
-## Example
+![Devcontainer Raspberry Pi example](images/devcontainer_raspberrypi.gif)
 
-`dotnet tool install -g devcontainer`
-`cd /to/project/dir`
-`devcontainer new csharp`
-`devcontainer activate csharp`
-`~~devcontainer run build.sh~~`
+You can also use the [template `default`](https://github.com/aniongithub/devcontainer-tools/tree/master/devcontainer/templates/default) to set up local development. 
 
-alternatively, open Visual Studio Code and choose "Reopen in Container" from the Command menu.
-
-That's it! Now `devcontainer/nupkg/` will contain the output of the buildᙿ. Note that this can for any platform or architecture supported by your Docker engine. 
-
-*ᙿNote: devcontainer sets up the correct access rights of the logged on user, so any files produced are directly usable on the host*
+More information, templates and examples are coming! 
