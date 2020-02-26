@@ -69,7 +69,7 @@ docker-machine ssh $REMOTE_MACHINE_NAME \
 docker-machine ssh $REMOTE_MACHINE_NAME "sudo sed -i '/user_allow_other/s/^#//g' /etc/fuse.conf"
 
 # Note, needs vde2 installed
-MOUNT_COMMAND="dpipe /usr/lib/openssh/sftp-server = docker-machine ssh $REMOTE_MACHINE_NAME sshfs :$PWD /tmp/$DEVCONTAINER_NAME-$DEVCONTAINER_ID -o slave -o allow_other"
+MOUNT_COMMAND="dpipe /usr/lib/openssh/sftp-server = docker-machine ssh $REMOTE_MACHINE_NAME sshfs :$PWD /tmp/$DEVCONTAINER_NAME-$DEVCONTAINER_ID -o reconnect -o slave -o allow_other"
 # nohup the mount command and background it
 nohup $MOUNT_COMMAND > "$PWD/.devcontainer/mount.log" 2>&1 &
 echo $! > "$PWD/.devcontainer/rsshfs.pid"
