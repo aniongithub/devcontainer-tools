@@ -14,7 +14,7 @@
     <PackageLicense>https://github.com/aniongithub/devcontainer-tools/blob/master/LICENSE</PackageLicense>
     <PackageProjectUrl>https://github.com/aniongithub/devcontainer-tools</PackageProjectUrl>
     <PackageTags>cli;docker;development;tool;dev;dockerfile;vscode;vs;remote;containers</PackageTags>
-    
+
   </PropertyGroup>
 
   <ItemGroup>
