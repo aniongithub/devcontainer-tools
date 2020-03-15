@@ -1,0 +1,11 @@
+Package: devcontainer
+Version: ${VER}
+Section: base
+Priority: optional
+Architecture: ${ARCHITECTURE}
+Depends:
+Maintainer: Ani Balasubramaniam <ani@anionline.me>
+Homepage: https://github.com/aniongithub/devcontainer-tools
+Description: Devcontainer
+ devcontainer is a CLI tool that creates and manages Visual Studio Code compatible 
+ Remote Containers for development.

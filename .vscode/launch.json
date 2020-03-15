@@ -68,17 +68,6 @@
             "stopAtEntry": false
         },
         {
-            "name": "run build.sh",
-            "type": "coreclr",
-            "request": "launch",
-            "preLaunchTask": "build",
-            "program": "${workspaceFolder}/devcontainer/bin/Debug/netcoreapp3.0/devcontainer.dll",
-            "args": [ "run", "./build.sh" ],
-            "cwd": "${workspaceFolder}",
-            "console": "integratedTerminal",
-            "stopAtEntry": false
-        },
-        {
             "name": "start",
             "type": "coreclr",
             "request": "launch",

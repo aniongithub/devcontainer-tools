@@ -1,0 +1,16 @@
+#! /bin/bash
+ARCH=$(uname -m)
+case ${ARCH} in
+    "armv7l")
+        RID="linux-arm"
+        ;;
+    "x86_64")
+        RID="linux-x64"
+        ;;
+    *)
+        echo "Unsupported architecture - ${ARCH}"
+        exit 1
+        ;;
+esac
+SCRIPTPATH="$( cd "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
+cp ${SCRIPTPATH}/devcontainer/bin/Release/netcoreapp3.0/${RID}/publish/devcontainer /usr/local/bin/

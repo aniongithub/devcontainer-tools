@@ -1,0 +1,25 @@
+#! /bin/bash
+SCRIPTPATH="$( cd "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
+ARCH=$(uname -m)
+case ${ARCH} in
+    "armv7l")
+        export RID="linux-arm"
+        export ARCHITECTURE="armhf"
+        ;;
+    "x86_64")
+        export RID="linux-x64"
+        export ARCHITECTURE="amd64"
+        ;;
+    *)
+        echo "Unsupported architecture - ${ARCH}"
+        exit 1
+        ;;
+esac
+export VER="$(cat ${SCRIPTPATH}/version)" 
+export REV="$(cat ${SCRIPTPATH}/revision)"
+export VER_PATH="${SCRIPTPATH}/devcontainer_${VER}-${REV}"
+mkdir -p "${VER_PATH}/usr/local/bin"
+mkdir -p "${VER_PATH}/DEBIAN"
+envsubst < "${SCRIPTPATH}/control-template" > ${VER_PATH}/DEBIAN/control
+cp "${SCRIPTPATH}/devcontainer/bin/Release/netcoreapp3.0/${RID}/publish/devcontainer" "${VER_PATH}/usr/local/bin"
+dpkg-deb --build devcontainer_${VER}-${REV}
