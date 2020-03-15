@@ -1,6 +1,6 @@
 # devcontainer-tools
 
-[![Build status](https://ci.appveyor.com/api/projects/status/uwnfvv2g62uvxb7j/branch/master?svg=true)](https://ci.appveyor.com/project/aniongithub/devcontainer-tools/branch/master)
+![CI](https://github.com/aniongithub/devcontainer-tools/workflows/CI/badge.svg)
 
 `devcontainer` is a .NET Core [global tool](https://docs.microsoft.com/en-us/dotnet/core/tools/global-tools) that creates and manages Visual Studio Code compatible [Remote Containers](https://code.visualstudio.com/docs/remote/containers) for development. To install, type
 
