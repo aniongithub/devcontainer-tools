@@ -14,11 +14,11 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Setup .NET Core
-        uses: actions/setup-dotnet@v1
+        uses: actions/setup-dotnet@v1.4.0
         with:
           dotnet-version: 3.1.101
       - name: Setup Build tools
-        run: sudo apt-get update && sudo apt-get install -y gettext libicu-dev build-essential
+        run: apt-get update && apt-get install -y gettext libicu-dev build-essential
 
       - name: Build
         run: make
