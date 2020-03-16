@@ -18,7 +18,7 @@ jobs:
         with:
           dotnet-version: 3.1.101
       - name: Setup Build tools
-        run: apt-get update && apt-get install -y gettext libicu-dev build-essential
+        run: sudo apt-get update && sudo apt-get install -y gettext libicu-dev build-essential
 
       - name: Build
         run: make

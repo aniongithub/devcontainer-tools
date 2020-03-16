@@ -6,8 +6,22 @@ on:
     tags:
       - "v*"
 jobs:
-  generate:
-    name: Create release-artifacts
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
+  steps:
+    - uses: actions/checkout@v2
+
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v1.4.0
+      with:
+        dotnet-version: 3.1.101
+    - name: Setup Build tools
+      run: sudo apt-get update && sudo apt-get install -y gettext libicu-dev build-essential
+
+    - name: Build
+      run: make
+
+    - name: Upload
+      uses: skx/github-action-publish-binaries@master
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        args: 'devcontainer_*.deb'
