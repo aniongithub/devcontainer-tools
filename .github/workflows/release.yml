@@ -1,10 +1,8 @@
 name: Release
 on:
-  push:
-    branches:
-      - master
-    tags:
-      - "v*"
+  release:
+    types: [created]
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -19,7 +17,9 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y gettext libicu-dev build-essential
 
       - name: Build
-        run: make
+        uses: skx/github-actions-build@master
+        with:
+          builder: make
 
       - name: Upload
         uses: skx/github-action-publish-binaries@master
