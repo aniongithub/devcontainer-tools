@@ -14,7 +14,15 @@
     <PackageProjectUrl>https://github.com/aniongithub/devcontainer-tools</PackageProjectUrl>
     <PackageTags>cli;docker;development;tool;dev;dockerfile;vscode;vs;remote;containers</PackageTags>
 
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All" />
+  </ItemGroup>
+
 
   <ItemGroup>
     <PackageReference Include="CliWrap" Version="2.4.0" />
